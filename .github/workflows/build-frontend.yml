@@ -8,6 +8,9 @@ on:
       - '.github/workflows/build-frontend.yml'
   workflow_dispatch:  # 允许手动触发
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
