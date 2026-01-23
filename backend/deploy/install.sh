@@ -22,10 +22,10 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # 变量
-INSTALL_DIR="/home/pi/web-control"
+INSTALL_DIR="/home/ws/web-control"
 BACKEND_DIR="$INSTALL_DIR/backend"
 SERVICE_NAME="ugv-web"
-CURRENT_USER=${SUDO_USER:-pi}
+CURRENT_USER=${SUDO_USER:-ws}
 
 echo "Installing to: $INSTALL_DIR"
 echo "Service name: $SERVICE_NAME"

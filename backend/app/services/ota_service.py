@@ -34,8 +34,8 @@ class OTAService:
         self.config = config or {}
 
         # 路径配置
-        self.repo_dir = Path(self.config.get('repo_dir', '/home/pi/web-control'))
-        self.backup_dir = Path(self.config.get('backup_dir', '/home/pi/web-control-backups'))
+        self.repo_dir = Path(self.config.get('repo_dir', '/home/ws/web-control'))
+        self.backup_dir = Path(self.config.get('backup_dir', '/home/ws/web-control-backups'))
         self.version_file = self.repo_dir / '.version'
 
         # 服务配置
@@ -449,8 +449,8 @@ def init_ota_service(app_config):
         app_config: Flask app.config对象
     """
     config = {
-        'repo_dir': app_config.get('OTA_REPO_DIR', '/home/pi/web-control'),
-        'backup_dir': app_config.get('OTA_BACKUP_DIR', '/home/pi/web-control-backups'),
+        'repo_dir': app_config.get('OTA_REPO_DIR', '/home/ws/web-control'),
+        'backup_dir': app_config.get('OTA_BACKUP_DIR', '/home/ws/web-control-backups'),
         'service_name': app_config.get('OTA_SERVICE_NAME', 'ugv-web'),
         'git_remote': app_config.get('OTA_GIT_REMOTE', 'origin'),
         'git_branch': app_config.get('OTA_GIT_BRANCH', 'main')

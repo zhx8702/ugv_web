@@ -16,8 +16,8 @@ set -e  # 遇到错误立即退出
 # 配置变量
 # ============================================================================
 
-REPO_DIR="/home/pi/web-control"
-BACKUP_DIR="/home/pi/web-control-backups"
+REPO_DIR="/home/ws/web-control"
+BACKUP_DIR="/home/ws/web-control-backups"
 VERSION_FILE="$REPO_DIR/.version"
 SERVICE_NAME="ugv-web"
 LOG_FILE="/var/log/ota-update.log"

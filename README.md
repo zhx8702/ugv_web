@@ -51,10 +51,10 @@ uv run python run.py
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/你的用户名/web-control.git /home/pi/web-control
+git clone https://github.com/zhx8702/ugv_web.git /home/ws/web-control
 
 # 2. 运行安装脚本
-cd /home/pi/web-control/backend
+cd /home/ws/web-control/backend
 sudo ./deploy/install.sh
 
 # 3. 编辑配置
@@ -78,10 +78,10 @@ pipx ensurepath
 source ~/.bashrc
 
 # 克隆仓库
-git clone https://github.com/你的用户名/web-control.git /home/pi/web-control
+git clone https://github.com/zhx8702/ugv_web.git /home/ws/web-control
 
 # 设置后端
-cd /home/pi/web-control/backend
+cd /home/ws/web-control/backend
 uv sync
 cp .env.example .env
 
@@ -115,7 +115,7 @@ npm run build  # 输出到 ../backend/static/
 
 **手动更新：**
 ```bash
-sudo /home/pi/web-control/backend/scripts/ota_git_pull.sh
+sudo /home/ws/web-control/backend/scripts/ota_git_pull.sh
 ```
 
 **通过 Web API 更新：**

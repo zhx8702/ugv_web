@@ -196,7 +196,7 @@ GET /api/ota/status
 {
   "updating": false,
   "current_version": "v2.0.0",
-  "repo_dir": "/home/pi/web-control",
+  "repo_dir": "/home/ws/web-control",
   "service_name": "ugv-web"
 }
 ```
@@ -207,7 +207,7 @@ GET /api/ota/status
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yourusername/web-control.git
+git clone https://github.com/zhx8702/ugv_web.git
 cd web-control
 
 # 2. 运行安装脚本
@@ -231,18 +231,18 @@ sudo apt-get update
 sudo apt-get install -y python3 python3-pip python3-venv git curl ffmpeg v4l-utils
 
 # 2. 创建目录
-sudo mkdir -p /home/pi/web-control
-sudo mkdir -p /home/pi/web-control-backups
+sudo mkdir -p /home/ws/web-control
+sudo mkdir -p /home/ws/web-control-backups
 
 # 3. 克隆仓库
-git clone https://github.com/yourusername/web-control.git /home/pi/web-control
+git clone https://github.com/zhx8702/ugv_web.git /home/ws/web-control
 
 # 4. 安装 uv 并设置依赖
 sudo apt install -y pipx
 pipx install uv
 pipx ensurepath
 source ~/.bashrc
-cd /home/pi/web-control/backend
+cd /home/ws/web-control/backend
 uv sync
 
 # 6. 配置
@@ -270,8 +270,8 @@ sudo cp deploy/ota-check.cron /etc/cron.d/ugv-ota
 
 ```bash
 # OTA配置（可选，使用默认值即可）
-OTA_REPO_DIR=/home/pi/web-control
-OTA_BACKUP_DIR=/home/pi/web-control-backups
+OTA_REPO_DIR=/home/ws/web-control
+OTA_BACKUP_DIR=/home/ws/web-control-backups
 OTA_SERVICE_NAME=ugv-web
 OTA_GIT_REMOTE=origin
 OTA_GIT_BRANCH=main
@@ -285,7 +285,7 @@ OTA_GIT_BRANCH=main
 
 ```cron
 # 每天凌晨2点自动检查并更新
-0 2 * * * root /home/pi/web-control/backend/scripts/ota_git_pull.sh >> /var/log/ota-auto.log 2>&1
+0 2 * * * root /home/ws/web-control/backend/scripts/ota_git_pull.sh >> /var/log/ota-auto.log 2>&1
 ```
 
 ## 🔧 使用方法
@@ -294,7 +294,7 @@ OTA_GIT_BRANCH=main
 
 ```bash
 # 方法1: 使用脚本
-sudo /home/pi/web-control/backend/scripts/ota_git_pull.sh
+sudo /home/ws/web-control/backend/scripts/ota_git_pull.sh
 
 # 方法2: 使用API
 curl -X POST http://localhost:5080/api/ota/perform-update
@@ -453,13 +453,13 @@ async function rollbackTo(backupName) {
 
 **错误:**
 ```
-Permission denied: cannot write to /home/pi/web-control
+Permission denied: cannot write to /home/ws/web-control
 ```
 
 **解决:**
 ```bash
-sudo chown -R pi:pi /home/pi/web-control
-sudo chown -R pi:pi /home/pi/web-control-backups
+sudo chown -R ws:ws /home/ws/web-control
+sudo chown -R ws:ws /home/ws/web-control-backups
 ```
 
 ### 问题2: Git无法pull
@@ -472,8 +472,8 @@ fatal: could not read Username for 'https://github.com'
 **解决:**
 ```bash
 # 使用SSH方式
-cd /home/pi/web-control
-git remote set-url origin git@github.com:username/web-control.git
+cd /home/ws/web-control
+git remote set-url origin git@github.com:zhx8702/ugv_web.git
 
 # 或配置credential helper
 git config --global credential.helper store
@@ -490,7 +490,7 @@ sudo journalctl -u ugv-web -n 50
 **解决:**
 ```bash
 # 检查虚拟环境
-cd /home/pi/web-control/backend
+cd /home/ws/web-control/backend
 source .venv/bin/activate
 python run.py  # 手动测试
 
