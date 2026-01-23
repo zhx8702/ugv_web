@@ -1,12 +1,25 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+import fs from 'fs'
 
 // 检测是否为 GitHub Pages 构建
 const isGitHubPages = process.env.BUILD_TARGET === 'github'
 
+// 创建 .nojekyll 文件的插件
+const noJekyllPlugin = () => ({
+  name: 'no-jekyll',
+  closeBundle() {
+    if (isGitHubPages) {
+      const docsDir = path.resolve(__dirname, '../docs')
+      fs.writeFileSync(path.join(docsDir, '.nojekyll'), '')
+      console.log('Created .nojekyll file')
+    }
+  }
+})
+
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), noJekyllPlugin()],
   // GitHub Pages 需要设置 base 路径（仓库名）
   base: isGitHubPages ? '/ugv_web/' : '/',
   resolve: {
@@ -33,8 +46,8 @@ export default defineConfig({
     }
   },
   build: {
-    // GitHub Pages 输出到 docs 目录，正常构建输出到 backend/static
-    outDir: isGitHubPages ? 'docs' : '../backend/static',
+    // GitHub Pages 输出到根目录的 docs，正常构建输出到 backend/static
+    outDir: isGitHubPages ? '../docs' : '../backend/static',
     emptyOutDir: true,
     rollupOptions: {
       output: {
