@@ -603,6 +603,7 @@ class VideoStream:
 
             # 使用imageio创建视频写入器
             # 使用 ffmpeg 参数确保浏览器兼容性
+            # 注意：不指定 -s 参数，让 ffmpeg 自动检测帧大小
             self.video_writer = imageio.get_writer(
                 str(filename),
                 fps=self.target_fps,
@@ -610,11 +611,10 @@ class VideoStream:
                 pixelformat='yuv420p',  # 标准像素格式，确保浏览器兼容
                 output_params=[
                     '-preset', 'fast',
-                    '-crf', '23',
-                    '-movflags', '+faststart',
-                    '-s', f'{self.width}x{self.height}'  # 显式指定分辨率
+                    '-crf', '23'
                 ]
             )
+            self.recording_filename = filename  # 保存文件名用于后处理
 
             self.video_recording = True
             logger.info(f"Recording started: {filename}")
@@ -637,12 +637,18 @@ class VideoStream:
             # 在后台线程中关闭 writer，避免阻塞帧处理
             if self.video_writer:
                 writer = self.video_writer
+                filename = getattr(self, 'recording_filename', None)
                 self.video_writer = None
+                self.recording_filename = None
 
                 def close_writer():
                     try:
                         writer.close()
                         logger.info("Video writer closed successfully")
+
+                        # 后处理：使用 ffmpeg 添加 faststart 以支持流式播放
+                        if filename and filename.exists():
+                            self._post_process_video(filename)
                     except Exception as e:
                         logger.error(f"Failed to close video writer: {e}")
 
@@ -655,6 +661,36 @@ class VideoStream:
         except Exception as e:
             logger.error(f"Failed to stop recording: {e}")
             return False
+
+    def _post_process_video(self, filename):
+        """后处理视频文件，添加 faststart 以支持流式播放"""
+        import subprocess
+        import shutil
+
+        try:
+            temp_file = filename.with_suffix('.temp.mp4')
+
+            # 使用 ffmpeg 重新封装，添加 faststart
+            cmd = [
+                'ffmpeg', '-y',
+                '-i', str(filename),
+                '-c', 'copy',  # 不重新编码，只是重新封装
+                '-movflags', '+faststart',
+                str(temp_file)
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+            if result.returncode == 0 and temp_file.exists():
+                # 替换原文件
+                shutil.move(str(temp_file), str(filename))
+                logger.info(f"Video post-processed with faststart: {filename}")
+            else:
+                logger.warning(f"Video post-processing failed: {result.stderr}")
+                if temp_file.exists():
+                    temp_file.unlink()
+        except Exception as e:
+            logger.error(f"Video post-processing error: {e}")
 
     def set_zoom(self, rate):
         """

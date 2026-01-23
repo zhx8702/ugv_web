@@ -96,6 +96,7 @@ def register_blueprints(app):
     from app.api.ota import ota_bp
     from app.api.lidar import lidar_bp
     from app.api.espnow import espnow_bp
+    from app.api.settings import settings_bp
 
     app.register_blueprint(system_bp, url_prefix='/api/system')
     app.register_blueprint(control_bp, url_prefix='/api/control')
@@ -106,6 +107,7 @@ def register_blueprints(app):
     app.register_blueprint(ota_bp)  # Already has /api/ota prefix
     app.register_blueprint(lidar_bp)  # Already has /api/lidar prefix
     app.register_blueprint(espnow_bp)  # Already has /api/espnow prefix
+    app.register_blueprint(settings_bp)  # Already has /api/settings prefix
 
 
 def register_websocket_handlers():

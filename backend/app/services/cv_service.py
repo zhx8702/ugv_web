@@ -510,9 +510,9 @@ class CVService:
                 continue
             cv2.line(overlay, self.color_points[i - 1], self.color_points[i], (255, 255, 128), 1)
 
-        # 颜色范围信息显示在右下角，避免和左上角OSD重叠
+        # 颜色范围信息显示在左下角上方，避免和底部控制栏重叠
         cv2.putText(overlay, f'HSV: {self.color_lower.tolist()} - {self.color_upper.tolist()}',
-                    (width - 300, height - 20),
+                    (10, height - 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
         self.overlay = overlay

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:github": "cross-env BUILD_TARGET=github vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx",
     "format": "prettier --write \"src/**/*.{vue,js,ts,css,scss}\""
@@ -28,6 +29,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-vue": "^9.20.1",
     "prettier": "^3.2.4",
-    "@iconify/vue": "^4.1.1"
+    "@iconify/vue": "^4.1.1",
+    "cross-env": "^7.0.3"
   }
 }

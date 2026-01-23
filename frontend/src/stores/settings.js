@@ -11,9 +11,9 @@ const defaultSettings = {
   sbcVersion: '0.93',
 
   // 视频配置
-  resolution: '480p',
-  resWidth: 640,
-  resHeight: 480,
+  resolution: '720p',
+  resWidth: 1280,
+  resHeight: 720,
   quality: 20,
   streamType: 'mjpeg',
 

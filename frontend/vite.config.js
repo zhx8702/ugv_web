@@ -2,8 +2,13 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
+// 检测是否为 GitHub Pages 构建
+const isGitHubPages = process.env.BUILD_TARGET === 'github'
+
 export default defineConfig({
   plugins: [vue()],
+  // GitHub Pages 需要设置 base 路径（仓库名）
+  base: isGitHubPages ? '/ugv_web/' : '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -28,7 +33,8 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../backend/static',
+    // GitHub Pages 输出到 docs 目录，正常构建输出到 backend/static
+    outDir: isGitHubPages ? 'docs' : '../backend/static',
     emptyOutDir: true,
     rollupOptions: {
       output: {
@@ -38,5 +44,9 @@ export default defineConfig({
         }
       }
     }
+  },
+  define: {
+    // GitHub Pages 构建时自动启用 mock 模式
+    'import.meta.env.VITE_MOCK': isGitHubPages ? '"true"' : 'undefined'
   }
 })
