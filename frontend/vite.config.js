@@ -67,6 +67,6 @@ export default defineConfig({
   },
   define: {
     // GitHub Pages 构建时自动启用 mock 模式
-    'import.meta.env.VITE_MOCK': isGitHubPages ? '"true"' : 'undefined'
+    'import.meta.env.VITE_MOCK': JSON.stringify(isGitHubPages ? 'true' : 'false')
   }
 })

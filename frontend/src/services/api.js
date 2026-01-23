@@ -3,9 +3,14 @@ import { useToast } from '@/composables/useToast'
 import * as mock from './mockData'
 
 // 检测是否为 Mock 模式（GitHub Pages 或手动设置）
-export const isMockMode = import.meta.env.VITE_MOCK === 'true' ||
-  window.location.hostname.includes('github.io') ||
-  window.location.hostname.includes('localhost') && import.meta.env.VITE_MOCK === 'true'
+const checkMockMode = () => {
+  // 环境变量设置
+  if (import.meta.env.VITE_MOCK === 'true') return true
+  // GitHub Pages 域名检测
+  if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) return true
+  return false
+}
+export const isMockMode = checkMockMode()
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || window.location.origin}/api`,
