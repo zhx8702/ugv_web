@@ -55,6 +55,7 @@ git clone https://github.com/zhx8702/ugv_web.git /home/ws/web-control
 
 # 2. 运行安装脚本
 cd /home/ws/web-control/backend
+chmod +x deploy/install.sh
 sudo ./deploy/install.sh
 
 # 3. 编辑配置

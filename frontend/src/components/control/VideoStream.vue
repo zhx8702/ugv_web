@@ -537,6 +537,8 @@ const switchStream = async (mode) => {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 
+  // 切换模式时重置 mockMode，让新的流模式可以正常渲染
+  mockMode.value = false
   streamMode.value = mode
   showSettings.value = false
 

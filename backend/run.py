@@ -5,6 +5,10 @@ Quick start script for UGV Rover Backend
 import sys
 import os
 
+# Load .env BEFORE anything else
+from dotenv import load_dotenv
+load_dotenv()
+
 # Monkey patch for eventlet (must be done before any other imports)
 if sys.platform != 'win32':
     try:
