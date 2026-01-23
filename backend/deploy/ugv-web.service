@@ -1,0 +1,20 @@
+[Unit]
+Description=UGV Rover Web Control Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/web-control/backend
+Environment="PATH=/home/pi/web-control/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/home/pi/web-control/backend/.venv/bin/python run.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ugv-web
+
+[Install]
+WantedBy=multi-user.target

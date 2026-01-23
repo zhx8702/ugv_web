@@ -1,0 +1,730 @@
+<template>
+  <div class="settings-page">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1 class="header-title">SYSTEM CONFIG</h1>
+          <div class="header-subtitle">
+            <span class="prefix">//</span>
+            ADVANCED PARAMETER SETTINGS
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Grid -->
+    <div class="settings-grid">
+      <!-- Robot Configuration -->
+      <div class="settings-panel" :style="{ animationDelay: '0ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <circle cx="12" cy="5" r="2" />
+              <path d="M12 7v4" />
+              <line x1="8" y1="16" x2="8" y2="16" />
+              <line x1="16" y1="16" x2="16" y2="16" />
+            </svg>
+          </div>
+          <h2 class="panel-title">UNIT PROFILE</h2>
+        </div>
+        <div class="panel-content">
+          <div class="form-group">
+            <label class="form-label">DESIGNATION</label>
+            <input type="text" v-model="settings.robotName" class="input w-full" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">CHASSIS TYPE</label>
+            <select v-model="settings.robotType" class="input w-full">
+              <option value="1">RaspRover</option>
+              <option value="2">UGV Rover</option>
+              <option value="3">UGV Beast</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">MODULE CONFIG</label>
+            <select v-model="settings.moduleType" class="input w-full">
+              <option value="0">Camera PT</option>
+              <option value="1">RoArm-M2</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Settings -->
+      <div class="settings-panel" :style="{ animationDelay: '100ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7" />
+              <rect x="1" y="5" width="15" height="14" rx="2" />
+            </svg>
+          </div>
+          <h2 class="panel-title">VIDEO PARAMS</h2>
+        </div>
+        <div class="panel-content">
+          <div class="form-group">
+            <label class="form-label">RESOLUTION</label>
+            <select v-model="settings.resolution" class="input w-full">
+              <option value="480p">640x480 (480p)</option>
+              <option value="720p">1280x720 (720p)</option>
+              <option value="1080p">1920x1080 (1080p)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">QUALITY: {{ settings.quality }}%</label>
+            <div class="slider-container">
+              <input type="range" v-model="settings.quality" min="10" max="100" class="w-full" />
+              <div class="slider-labels">
+                <span>LOW</span>
+                <span>HIGH</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">STREAM PROTOCOL</label>
+            <div class="radio-group">
+              <label class="radio-item" :class="{ active: settings.streamType === 'mjpeg' }">
+                <input type="radio" v-model="settings.streamType" value="mjpeg" />
+                <span class="radio-label">MJPEG</span>
+              </label>
+              <label class="radio-item" :class="{ active: settings.streamType === 'webrtc' }">
+                <input type="radio" v-model="settings.streamType" value="webrtc" />
+                <span class="radio-label">WebRTC</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Settings -->
+      <div class="settings-panel" :style="{ animationDelay: '200ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v8M8 12h8" />
+            </svg>
+          </div>
+          <h2 class="panel-title">CONTROL PARAMS</h2>
+        </div>
+        <div class="panel-content">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label">MAX SPEED (m/s)</label>
+              <input type="number" v-model="settings.maxSpeed" step="0.1" class="input w-full" />
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">SLOW SPEED (m/s)</label>
+              <input type="number" v-model="settings.slowSpeed" step="0.1" class="input w-full" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="settings.keyboardControl" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">KEYBOARD CONTROL</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="settings.vibration" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">HAPTIC FEEDBACK</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Information -->
+      <div class="settings-panel" :style="{ animationDelay: '300ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
+          <h2 class="panel-title">SYSTEM INFO</h2>
+          <div class="panel-badge online">OPERATIONAL</div>
+        </div>
+        <div class="panel-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">FIRMWARE</span>
+              <span class="info-value">v2.0.0</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">PLATFORM</span>
+              <span class="info-value">Raspberry Pi 4</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">IP ADDRESS</span>
+              <span class="info-value">192.168.50.5</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">WEBSOCKET</span>
+              <span class="info-value status-online">CONNECTED</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">UPTIME</span>
+              <span class="info-value">2h 34m 12s</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">LAST SYNC</span>
+              <span class="info-value">{{ lastSync }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Servo Configuration -->
+      <div class="settings-panel" :style="{ animationDelay: '400ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+            </svg>
+          </div>
+          <h2 class="panel-title">SERVO CONFIG</h2>
+          <div class="panel-badge" :class="servoReleased ? 'warning' : 'online'">
+            {{ servoReleased ? 'RELEASED' : 'LOCKED' }}
+          </div>
+        </div>
+        <div class="panel-content">
+          <!-- Servo ID Settings -->
+          <div class="servo-section">
+            <div class="section-title">SERVO ID ASSIGNMENT</div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label">PAN SERVO ID</label>
+                <input type="number" v-model="servo.panId" min="1" max="253" class="input w-full" />
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label">TILT SERVO ID</label>
+                <input type="number" v-model="servo.tiltId" min="1" max="253" class="input w-full" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Servo Actions -->
+          <div class="servo-section">
+            <div class="section-title">SERVO ACTIONS</div>
+            <div class="servo-actions">
+              <button class="servo-btn" @click="setServoMid(1)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <polyline points="19 12 12 5 5 12" />
+                </svg>
+                SET PAN MID
+              </button>
+              <button class="servo-btn" @click="setServoMid(2)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <polyline points="19 12 12 5 5 12" />
+                </svg>
+                SET TILT MID
+              </button>
+              <button class="servo-btn release" :class="{ active: servoReleased }" @click="toggleServoRelease">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                </svg>
+                {{ servoReleased ? 'LOCK SERVOS' : 'RELEASE SERVOS' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Advanced: Change Servo ID -->
+          <div class="servo-section">
+            <div class="section-title">ADVANCED: CHANGE SERVO ID</div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label">OLD ID</label>
+                <input type="number" v-model="servo.oldId" min="1" max="253" class="input w-full" />
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label">NEW ID</label>
+                <input type="number" v-model="servo.newId" min="1" max="253" class="input w-full" />
+              </div>
+              <button class="btn btn-outline change-id-btn" @click="changeServoId">
+                CHANGE
+              </button>
+            </div>
+            <div class="warning-text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              Only one servo should be connected when changing ID
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Panel -->
+    <div class="actions-panel">
+      <div class="actions-left">
+        <button class="btn btn-primary" @click="saveSettings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          SAVE CONFIG
+        </button>
+        <button class="btn btn-outline" @click="resetSettings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          RESET DEFAULTS
+        </button>
+      </div>
+      <div class="actions-right">
+        <button class="btn btn-outline" @click="exportConfig">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          EXPORT
+        </button>
+        <button class="btn btn-outline" @click="importConfig">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          IMPORT
+        </button>
+        <button class="btn btn-danger" @click="rebootSystem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+            <line x1="12" y1="2" x2="12" y2="12" />
+          </svg>
+          REBOOT
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import {
+  setServoId as apiSetServoId,
+  setServoMid as apiSetServoMid,
+  setServoTorque,
+  releaseServo as apiReleaseServo
+} from '@/services/api'
+
+const settings = ref({
+  robotName: 'UGV Rover',
+  robotType: '2',
+  moduleType: '0',
+  resolution: '480p',
+  quality: 20,
+  streamType: 'mjpeg',
+  maxSpeed: 1.3,
+  slowSpeed: 0.2,
+  keyboardControl: true,
+  vibration: false
+})
+
+const servo = ref({
+  panId: 1,
+  tiltId: 2,
+  oldId: 1,
+  newId: 1
+})
+
+const servoReleased = ref(false)
+const lastSync = ref('')
+
+function updateLastSync() {
+  const now = new Date()
+  lastSync.value = now.toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+}
+
+function saveSettings() {
+  console.log('Save settings:', settings.value)
+  updateLastSync()
+}
+
+function resetSettings() {
+  console.log('Reset to defaults')
+}
+
+function exportConfig() {
+  console.log('Export configuration')
+}
+
+function importConfig() {
+  console.log('Import configuration')
+}
+
+function rebootSystem() {
+  console.log('Reboot system')
+}
+
+// Servo control functions
+async function setServoMid(id) {
+  try {
+    await apiSetServoMid(id)
+    console.log(`Servo ${id} mid position set`)
+  } catch (e) {
+    console.error('Set servo mid failed:', e)
+  }
+}
+
+async function toggleServoRelease() {
+  try {
+    if (servoReleased.value) {
+      // Lock servos
+      await setServoTorque(servo.value.panId, true)
+      await setServoTorque(servo.value.tiltId, true)
+      servoReleased.value = false
+    } else {
+      // Release servos
+      await apiReleaseServo()
+      servoReleased.value = true
+    }
+  } catch (e) {
+    console.error('Toggle servo release failed:', e)
+  }
+}
+
+async function changeServoId() {
+  if (servo.value.oldId === servo.value.newId) {
+    console.warn('Old ID and new ID are the same')
+    return
+  }
+  try {
+    await apiSetServoId(servo.value.oldId, servo.value.newId)
+    console.log(`Servo ID changed: ${servo.value.oldId} -> ${servo.value.newId}`)
+  } catch (e) {
+    console.error('Change servo ID failed:', e)
+  }
+}
+
+onMounted(() => {
+  updateLastSync()
+})
+</script>
+
+<style scoped>
+.settings-page {
+  @apply p-6 min-h-screen;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Page Header */
+.page-header {
+  @apply flex items-center justify-between mb-6 pb-4;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.header-left {
+  @apply flex items-center gap-4;
+}
+
+.header-icon {
+  @apply w-10 h-10 text-primary;
+  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.5));
+  animation: spin 10s linear infinite;
+}
+
+.header-text {
+  @apply flex flex-col;
+}
+
+.header-title {
+  @apply text-2xl font-orbitron font-bold tracking-widest;
+  background: linear-gradient(135deg, #00f0ff 0%, #0080ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-subtitle {
+  @apply text-xs font-mono text-dark-text-tertiary flex items-center gap-2;
+}
+
+.header-subtitle .prefix {
+  @apply text-primary;
+}
+
+/* Settings Grid */
+.settings-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6;
+}
+
+/* Settings Panel */
+.settings-panel {
+  @apply relative overflow-hidden;
+  background: linear-gradient(135deg, rgba(10, 22, 40, 0.9) 0%, rgba(3, 7, 18, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  animation: slideUp 0.5s ease-out both;
+}
+
+.settings-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.5), transparent);
+}
+
+.panel-header {
+  @apply flex items-center gap-3 px-5 py-3;
+  background: rgba(0, 240, 255, 0.03);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.panel-icon {
+  @apply w-5 h-5 text-primary;
+}
+
+.panel-title {
+  @apply flex-1 text-sm font-orbitron font-semibold tracking-wider text-dark-text-primary uppercase;
+}
+
+.panel-badge {
+  @apply px-2 py-0.5 text-[10px] font-orbitron font-medium tracking-wider rounded-sm;
+}
+
+.panel-badge.online {
+  @apply bg-secondary/20 text-secondary border border-secondary/30;
+}
+
+.panel-content {
+  @apply p-5 space-y-4;
+}
+
+/* Form Elements */
+.form-group {
+  @apply space-y-2;
+}
+
+.form-row {
+  @apply flex gap-4;
+}
+
+.form-label {
+  @apply block text-[10px] font-orbitron tracking-wider text-dark-text-tertiary uppercase;
+}
+
+/* Slider */
+.slider-container {
+  @apply space-y-1;
+}
+
+.slider-labels {
+  @apply flex justify-between text-[10px] font-mono text-dark-text-tertiary;
+}
+
+/* Radio Group */
+.radio-group {
+  @apply flex gap-2;
+}
+
+.radio-item {
+  @apply flex-1 relative cursor-pointer;
+}
+
+.radio-item input {
+  @apply absolute opacity-0;
+}
+
+.radio-label {
+  @apply block text-center py-2 px-4 font-orbitron text-xs tracking-wider;
+  @apply text-dark-text-tertiary border border-dark-border;
+  @apply transition-all duration-200;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.radio-item.active .radio-label {
+  @apply text-primary border-primary bg-primary/10;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+/* Toggle Switch */
+.toggle-item {
+  @apply flex items-center gap-3 cursor-pointer;
+}
+
+.toggle-item input {
+  @apply hidden;
+}
+
+.toggle-switch {
+  @apply relative w-12 h-6 rounded-full transition-all duration-200;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.toggle-switch::after {
+  content: '';
+  @apply absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-200;
+  background: var(--dark-bg);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+}
+
+.toggle-item input:checked + .toggle-switch {
+  background: var(--cyber-cyan);
+  border-color: var(--cyber-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.toggle-item input:checked + .toggle-switch::after {
+  @apply left-6;
+  background: var(--dark-bg);
+  border-color: var(--dark-bg);
+}
+
+.toggle-label {
+  @apply text-sm font-mono text-dark-text-primary;
+}
+
+/* Info Grid */
+.info-grid {
+  @apply grid grid-cols-2 gap-4;
+}
+
+.info-item {
+  @apply flex flex-col gap-1;
+}
+
+.info-label {
+  @apply text-[10px] font-orbitron tracking-wider text-dark-text-tertiary uppercase;
+}
+
+.info-value {
+  @apply text-sm font-mono text-dark-text-primary;
+}
+
+.info-value.status-online {
+  @apply text-secondary;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+/* Actions Panel */
+.actions-panel {
+  @apply flex items-center justify-between p-5;
+  background: linear-gradient(135deg, rgba(10, 22, 40, 0.9) 0%, rgba(3, 7, 18, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+.actions-left,
+.actions-right {
+  @apply flex items-center gap-3;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Servo Config Panel */
+.servo-section {
+  @apply space-y-3 pb-4;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.servo-section:last-child {
+  @apply pb-0;
+  border-bottom: none;
+}
+
+.section-title {
+  @apply text-[10px] font-orbitron tracking-wider text-primary uppercase;
+}
+
+.servo-actions {
+  @apply grid grid-cols-3 gap-2;
+}
+
+.servo-btn {
+  @apply flex flex-col items-center justify-center gap-1 py-3 px-2;
+  @apply text-[10px] font-orbitron tracking-wider;
+  @apply text-dark-text-tertiary border border-dark-border;
+  @apply transition-all duration-200;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.servo-btn svg {
+  @apply w-5 h-5;
+}
+
+.servo-btn:hover {
+  @apply text-primary border-primary/50 bg-primary/5;
+}
+
+.servo-btn.release {
+  @apply text-warning border-warning/30;
+}
+
+.servo-btn.release:hover {
+  @apply bg-warning/10 border-warning;
+}
+
+.servo-btn.release.active {
+  @apply text-secondary border-secondary bg-secondary/10;
+}
+
+.change-id-btn {
+  @apply self-end mb-2;
+}
+
+.warning-text {
+  @apply flex items-center gap-2 mt-2 p-2;
+  @apply text-[10px] font-mono text-warning;
+  @apply bg-warning/5 border border-warning/20 rounded;
+}
+
+.warning-text svg {
+  @apply w-4 h-4 flex-shrink-0;
+}
+
+.panel-badge.warning {
+  @apply bg-warning/20 text-warning border border-warning/30;
+}
+</style>

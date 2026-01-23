@@ -1,0 +1,4 @@
+# Treat built frontend assets as binary (no diff, faster clone)
+backend/static/assets/*.js binary
+backend/static/assets/*.css binary
+backend/static/assets/*.woff2 binary

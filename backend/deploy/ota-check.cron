@@ -1,0 +1,5 @@
+# OTA自动更新检查 - Cron配置
+# 每天凌晨2点检查并自动更新
+
+# 分 时 日 月 周 命令
+0 2 * * * root /home/pi/web-control/backend/scripts/ota_git_pull.sh >> /var/log/ota-auto.log 2>&1
