@@ -29,6 +29,13 @@ api.interceptors.response.use(
 // 系统相关API
 export const getSystemStatus = () => api.get('/system/status')
 export const getSystemStats = () => api.get('/system/stats')
+export const rebootSystem = () => api.post('/system/reboot')
+
+// OTA 更新相关 API
+export const getVersion = () => api.get('/system/version')
+export const checkUpdate = () => api.get('/system/check-update')
+export const doUpdate = () => api.post('/system/update', {}, { timeout: 120000 })
+export const restartService = () => api.post('/system/restart-service')
 
 // 媒体相关API
 export const getPhotos = () => api.get('/media/photos')

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import {
   sendCommand as sendApiCommand,
   sendJsonCommand as sendApiJsonCommand,
@@ -14,9 +14,15 @@ import {
 } from '@/services/api'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useSystemStore } from '@/stores/system'
+import { useSettingsStore } from '@/stores/settings'
+import { useToast } from '@/composables/useToast'
 
 export const useControlStore = defineStore('control', () => {
   const { sendCommand, sendJsonCommand, connected } = useWebSocket()
+  const toast = useToast()
+
+  // 是否已从配置初始化
+  const initialized = ref(false)
 
   // 速度控制
   const speedMode = ref('mid')
@@ -259,11 +265,13 @@ export const useControlStore = defineStore('control', () => {
   async function capturePhoto() {
     try {
       await apiCapturePhoto()
-      // 更新媒体计数
+      toast.success('Photo captured')
+      // 延迟更新媒体计数，等待后端异步保存完成
       const systemStore = useSystemStore()
-      systemStore.fetchMediaCount()
+      setTimeout(() => systemStore.fetchMediaCount(), 500)
     } catch (e) {
       console.error('Capture photo failed:', e)
+      toast.error('Failed to capture photo')
     }
   }
 
@@ -273,6 +281,7 @@ export const useControlStore = defineStore('control', () => {
     try {
       await startRecording()
       recording.value = true
+      toast.success('Recording started')
       // 启动计时器
       recordSeconds = 0
       recordTime.value = '00:00'
@@ -284,6 +293,7 @@ export const useControlStore = defineStore('control', () => {
       }, 1000)
     } catch (e) {
       console.error('Start record failed:', e)
+      toast.error('Failed to start recording')
     }
   }
 
@@ -300,11 +310,13 @@ export const useControlStore = defineStore('control', () => {
       }
       recordSeconds = 0
       recordTime.value = '00:00'
-      // 更新媒体计数
+      toast.success('Recording saved')
+      // 延迟更新媒体计数，等待后端完成视频写入
       const systemStore = useSystemStore()
-      systemStore.fetchMediaCount()
+      setTimeout(() => systemStore.fetchMediaCount(), 1000)
     } catch (e) {
       console.error('Stop record failed:', e)
+      toast.error('Failed to stop recording')
     }
   }
 
@@ -345,7 +357,72 @@ export const useControlStore = defineStore('control', () => {
     detections.value = []
   }
 
+  // 从设置初始化控制状态
+  async function initFromSettings() {
+    if (initialized.value) return
+
+    const settingsStore = useSettingsStore()
+
+    // 等待配置加载完成
+    await settingsStore.fetchConfig()
+
+    const prefs = settingsStore.preferences
+
+    // 应用速度设置
+    speedMode.value = prefs.speedMode || 'mid'
+    const speedMap = settingsStore.speedMap
+    speedValue.value = speedMap[speedMode.value] || 0.66
+
+    // 应用灯光设置（发送命令到设备）
+    if (prefs.headLight && prefs.headLight !== 'off') {
+      setHeadLight(prefs.headLight)
+    }
+    if (prefs.baseLight) {
+      setBaseLight(true)
+    }
+
+    // 应用缩放设置
+    if (prefs.zoomLevel && prefs.zoomLevel !== 1) {
+      zoomLevel.value = prefs.zoomLevel
+    }
+
+    // 应用检测模式
+    if (prefs.detectionType && prefs.detectionType !== 'none') {
+      setDetectionMode(prefs.detectionType)
+    }
+
+    initialized.value = true
+  }
+
+  // 保存当前状态到偏好
+  function saveCurrentState() {
+    const settingsStore = useSettingsStore()
+    settingsStore.preferences.speedMode = speedMode.value
+    settingsStore.preferences.headLight = headLight.value
+    settingsStore.preferences.baseLight = baseLight.value
+    settingsStore.preferences.zoomLevel = zoomLevel.value
+    settingsStore.preferences.detectionType = detectionType.value
+    settingsStore.savePreferences()
+  }
+
+  // 防抖保存定时器
+  let saveTimer = null
+  function debounceSave() {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      saveCurrentState()
+    }, 2000) // 2秒后保存
+  }
+
+  // 监听状态变化，自动保存
+  watch([speedMode, headLight, baseLight, zoomLevel, detectionType], () => {
+    if (initialized.value) {
+      debounceSave()
+    }
+  })
+
   return {
+    initialized,
     speedMode,
     speedValue,
     panAngle,
@@ -385,6 +462,8 @@ export const useControlStore = defineStore('control', () => {
     unlockMotor,
     startDetectionPolling,
     stopDetectionPolling,
-    fetchDetections
+    fetchDetections,
+    initFromSettings,
+    saveCurrentState
   }
 })

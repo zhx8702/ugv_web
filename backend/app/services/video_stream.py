@@ -608,8 +608,12 @@ class VideoStream:
                 fps=self.target_fps,
                 codec='libx264',
                 pixelformat='yuv420p',  # 标准像素格式，确保浏览器兼容
-                output_params=['-preset', 'fast', '-crf', '23', '-movflags', '+faststart'],
-                size=(self.width, self.height)  # 显式指定分辨率，避免帧大小不匹配
+                output_params=[
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-movflags', '+faststart',
+                    '-s', f'{self.width}x{self.height}'  # 显式指定分辨率
+                ]
             )
 
             self.video_recording = True

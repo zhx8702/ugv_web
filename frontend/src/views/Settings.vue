@@ -17,6 +17,10 @@
           </div>
         </div>
       </div>
+      <div class="header-status" v-if="settingsStore.loading">
+        <span class="loading-indicator"></span>
+        SYNCING...
+      </div>
     </div>
 
     <!-- Settings Grid -->
@@ -38,21 +42,21 @@
         <div class="panel-content">
           <div class="form-group">
             <label class="form-label">DESIGNATION</label>
-            <input type="text" v-model="settings.robotName" class="input w-full" />
+            <input type="text" v-model="settingsStore.settings.robotName" class="input w-full" />
           </div>
           <div class="form-group">
             <label class="form-label">CHASSIS TYPE</label>
-            <select v-model="settings.robotType" class="input w-full">
-              <option value="1">RaspRover</option>
-              <option value="2">UGV Rover</option>
-              <option value="3">UGV Beast</option>
+            <select v-model="settingsStore.settings.robotType" class="input w-full">
+              <option :value="1">RaspRover</option>
+              <option :value="2">UGV Rover</option>
+              <option :value="3">UGV Beast</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">MODULE CONFIG</label>
-            <select v-model="settings.moduleType" class="input w-full">
-              <option value="0">Camera PT</option>
-              <option value="1">RoArm-M2</option>
+            <select v-model="settingsStore.settings.moduleType" class="input w-full">
+              <option :value="0">Camera PT</option>
+              <option :value="1">RoArm-M2</option>
             </select>
           </div>
         </div>
@@ -72,16 +76,16 @@
         <div class="panel-content">
           <div class="form-group">
             <label class="form-label">RESOLUTION</label>
-            <select v-model="settings.resolution" class="input w-full">
+            <select v-model="settingsStore.settings.resolution" class="input w-full">
               <option value="480p">640x480 (480p)</option>
               <option value="720p">1280x720 (720p)</option>
               <option value="1080p">1920x1080 (1080p)</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">QUALITY: {{ settings.quality }}%</label>
+            <label class="form-label">QUALITY: {{ settingsStore.settings.quality }}%</label>
             <div class="slider-container">
-              <input type="range" v-model="settings.quality" min="10" max="100" class="w-full" />
+              <input type="range" v-model="settingsStore.settings.quality" min="10" max="100" class="w-full" />
               <div class="slider-labels">
                 <span>LOW</span>
                 <span>HIGH</span>
@@ -91,12 +95,12 @@
           <div class="form-group">
             <label class="form-label">STREAM PROTOCOL</label>
             <div class="radio-group">
-              <label class="radio-item" :class="{ active: settings.streamType === 'mjpeg' }">
-                <input type="radio" v-model="settings.streamType" value="mjpeg" />
+              <label class="radio-item" :class="{ active: settingsStore.settings.streamType === 'mjpeg' }">
+                <input type="radio" v-model="settingsStore.settings.streamType" value="mjpeg" />
                 <span class="radio-label">MJPEG</span>
               </label>
-              <label class="radio-item" :class="{ active: settings.streamType === 'webrtc' }">
-                <input type="radio" v-model="settings.streamType" value="webrtc" />
+              <label class="radio-item" :class="{ active: settingsStore.settings.streamType === 'webrtc' }">
+                <input type="radio" v-model="settingsStore.settings.streamType" value="webrtc" />
                 <span class="radio-label">WebRTC</span>
               </label>
             </div>
@@ -119,23 +123,23 @@
           <div class="form-row">
             <div class="form-group flex-1">
               <label class="form-label">MAX SPEED (m/s)</label>
-              <input type="number" v-model="settings.maxSpeed" step="0.1" class="input w-full" />
+              <input type="number" v-model="settingsStore.settings.maxSpeed" step="0.1" class="input w-full" />
             </div>
             <div class="form-group flex-1">
               <label class="form-label">SLOW SPEED (m/s)</label>
-              <input type="number" v-model="settings.slowSpeed" step="0.1" class="input w-full" />
+              <input type="number" v-model="settingsStore.settings.slowSpeed" step="0.1" class="input w-full" />
             </div>
           </div>
           <div class="form-group">
             <label class="toggle-item">
-              <input type="checkbox" v-model="settings.keyboardControl" />
+              <input type="checkbox" v-model="settingsStore.preferences.keyboardControl" />
               <span class="toggle-switch"></span>
               <span class="toggle-label">KEYBOARD CONTROL</span>
             </label>
           </div>
           <div class="form-group">
             <label class="toggle-item">
-              <input type="checkbox" v-model="settings.vibration" />
+              <input type="checkbox" v-model="settingsStore.preferences.vibration" />
               <span class="toggle-switch"></span>
               <span class="toggle-label">HAPTIC FEEDBACK</span>
             </label>
@@ -154,33 +158,35 @@
             </svg>
           </div>
           <h2 class="panel-title">SYSTEM INFO</h2>
-          <div class="panel-badge online">OPERATIONAL</div>
+          <div class="panel-badge" :class="settingsStore.synced ? 'online' : 'warning'">
+            {{ settingsStore.synced ? 'SYNCED' : 'NOT SYNCED' }}
+          </div>
         </div>
         <div class="panel-content">
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">FIRMWARE</span>
-              <span class="info-value">v2.0.0</span>
+              <span class="info-value">v{{ settingsStore.settings.sbcVersion }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">PLATFORM</span>
-              <span class="info-value">Raspberry Pi 4</span>
+              <span class="info-value">Raspberry Pi</span>
             </div>
             <div class="info-item">
-              <span class="info-label">IP ADDRESS</span>
-              <span class="info-value">192.168.50.5</span>
+              <span class="info-label">ROBOT TYPE</span>
+              <span class="info-value">{{ robotTypeName }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">WEBSOCKET</span>
-              <span class="info-value status-online">CONNECTED</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">UPTIME</span>
-              <span class="info-value">2h 34m 12s</span>
+              <span class="info-label">MODULE</span>
+              <span class="info-value">{{ moduleTypeName }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">LAST SYNC</span>
-              <span class="info-value">{{ lastSync }}</span>
+              <span class="info-value">{{ settingsStore.formattedLastSync }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">STATUS</span>
+              <span class="info-value status-online">OPERATIONAL</span>
             </div>
           </div>
         </div>
@@ -271,18 +277,167 @@
           </div>
         </div>
       </div>
+
+      <!-- User Preferences -->
+      <div class="settings-panel" :style="{ animationDelay: '500ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <h2 class="panel-title">USER PREFERENCES</h2>
+          <div class="panel-badge online">SAVED ON SERVER</div>
+        </div>
+        <div class="panel-content">
+          <div class="form-group">
+            <label class="form-label">DEFAULT SPEED MODE</label>
+            <div class="radio-group triple">
+              <label class="radio-item" :class="{ active: settingsStore.preferences.speedMode === 'slow' }">
+                <input type="radio" v-model="settingsStore.preferences.speedMode" value="slow" />
+                <span class="radio-label">SLOW</span>
+              </label>
+              <label class="radio-item" :class="{ active: settingsStore.preferences.speedMode === 'mid' }">
+                <input type="radio" v-model="settingsStore.preferences.speedMode" value="mid" />
+                <span class="radio-label">MEDIUM</span>
+              </label>
+              <label class="radio-item" :class="{ active: settingsStore.preferences.speedMode === 'fast' }">
+                <input type="radio" v-model="settingsStore.preferences.speedMode" value="fast" />
+                <span class="radio-label">FAST</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DEFAULT HEAD LIGHT</label>
+            <div class="radio-group triple">
+              <label class="radio-item" :class="{ active: settingsStore.preferences.headLight === 'off' }">
+                <input type="radio" v-model="settingsStore.preferences.headLight" value="off" />
+                <span class="radio-label">OFF</span>
+              </label>
+              <label class="radio-item" :class="{ active: settingsStore.preferences.headLight === 'auto' }">
+                <input type="radio" v-model="settingsStore.preferences.headLight" value="auto" />
+                <span class="radio-label">AUTO</span>
+              </label>
+              <label class="radio-item" :class="{ active: settingsStore.preferences.headLight === 'on' }">
+                <input type="radio" v-model="settingsStore.preferences.headLight" value="on" />
+                <span class="radio-label">ON</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="settingsStore.preferences.baseLight" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">DEFAULT BASE LIGHT ON</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- OTA Update -->
+      <div class="settings-panel" :style="{ animationDelay: '600ms' }">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </div>
+          <h2 class="panel-title">OTA UPDATE</h2>
+          <div class="panel-badge" :class="updateStatus.hasUpdate ? 'warning' : 'online'">
+            {{ updateStatus.hasUpdate ? 'UPDATE AVAILABLE' : 'UP TO DATE' }}
+          </div>
+        </div>
+        <div class="panel-content">
+          <!-- Version Info -->
+          <div class="version-info">
+            <div class="version-row">
+              <span class="version-label">CURRENT VERSION</span>
+              <span class="version-value">v{{ versionInfo.sbc_version || '0.93' }}</span>
+            </div>
+            <div class="version-row" v-if="versionInfo.git_hash">
+              <span class="version-label">GIT COMMIT</span>
+              <span class="version-value mono">{{ versionInfo.git_hash }}</span>
+            </div>
+            <div class="version-row" v-if="versionInfo.git_branch">
+              <span class="version-label">BRANCH</span>
+              <span class="version-value mono">{{ versionInfo.git_branch }}</span>
+            </div>
+            <div class="version-row" v-if="versionInfo.last_update">
+              <span class="version-label">LAST UPDATE</span>
+              <span class="version-value mono">{{ formatDate(versionInfo.last_update) }}</span>
+            </div>
+          </div>
+
+          <!-- Update Status -->
+          <div class="update-status" v-if="updateStatus.hasUpdate">
+            <div class="update-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              {{ updateStatus.commits_behind }} commit(s) behind
+            </div>
+            <div class="changelog" v-if="updateStatus.changelog && updateStatus.changelog.length">
+              <div class="changelog-title">CHANGELOG</div>
+              <div class="changelog-item" v-for="(log, idx) in updateStatus.changelog" :key="idx">
+                {{ log }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Update Actions -->
+          <div class="update-actions">
+            <button
+              class="btn btn-outline"
+              @click="handleCheckUpdate"
+              :disabled="checkingUpdate"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" :class="{ spinning: checkingUpdate }">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              {{ checkingUpdate ? 'CHECKING...' : 'CHECK UPDATE' }}
+            </button>
+            <button
+              class="btn btn-primary"
+              @click="handleDoUpdate"
+              :disabled="!updateStatus.hasUpdate || updating"
+              v-if="updateStatus.hasUpdate"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              {{ updating ? 'UPDATING...' : 'INSTALL UPDATE' }}
+            </button>
+          </div>
+
+          <!-- Update Progress -->
+          <div class="update-progress" v-if="updating">
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">Downloading and applying update...</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Actions Panel -->
     <div class="actions-panel">
       <div class="actions-left">
-        <button class="btn btn-primary" @click="saveSettings">
+        <button class="btn btn-primary" @click="saveSettings" :disabled="settingsStore.loading">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
             <polyline points="17 21 17 13 7 13 7 21" />
             <polyline points="7 3 7 8 15 8" />
           </svg>
-          SAVE CONFIG
+          {{ settingsStore.loading ? 'SAVING...' : 'SAVE CONFIG' }}
         </button>
         <button class="btn btn-outline" @click="resetSettings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
@@ -290,6 +445,13 @@
             <path d="M3 3v5h5" />
           </svg>
           RESET DEFAULTS
+        </button>
+        <button class="btn btn-outline" @click="refreshConfig">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </svg>
+          REFRESH
         </button>
       </div>
       <div class="actions-right">
@@ -301,7 +463,7 @@
           </svg>
           EXPORT
         </button>
-        <button class="btn btn-outline" @click="importConfig">
+        <button class="btn btn-outline" @click="triggerImport">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
@@ -309,6 +471,7 @@
           </svg>
           IMPORT
         </button>
+        <input type="file" ref="fileInput" @change="handleImport" accept=".json" style="display: none" />
         <button class="btn btn-danger" @click="rebootSystem">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
             <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
@@ -322,26 +485,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
+import { useToast } from '@/composables/useToast'
 import {
   setServoId as apiSetServoId,
   setServoMid as apiSetServoMid,
   setServoTorque,
-  releaseServo as apiReleaseServo
+  releaseServo as apiReleaseServo,
+  getVersion,
+  checkUpdate,
+  doUpdate,
+  restartService
 } from '@/services/api'
 
-const settings = ref({
-  robotName: 'UGV Rover',
-  robotType: '2',
-  moduleType: '0',
-  resolution: '480p',
-  quality: 20,
-  streamType: 'mjpeg',
-  maxSpeed: 1.3,
-  slowSpeed: 0.2,
-  keyboardControl: true,
-  vibration: false
-})
+const settingsStore = useSettingsStore()
+const toast = useToast()
 
 const servo = ref({
   panId: 1,
@@ -351,46 +510,95 @@ const servo = ref({
 })
 
 const servoReleased = ref(false)
-const lastSync = ref('')
+const fileInput = ref(null)
 
-function updateLastSync() {
-  const now = new Date()
-  lastSync.value = now.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
+// OTA 更新状态
+const versionInfo = ref({})
+const updateStatus = ref({ hasUpdate: false, commits_behind: 0, changelog: [] })
+const checkingUpdate = ref(false)
+const updating = ref(false)
+
+// 计算属性
+const robotTypeName = computed(() => {
+  const types = { 1: 'RaspRover', 2: 'UGV Rover', 3: 'UGV Beast' }
+  return types[settingsStore.settings.robotType] || 'Unknown'
+})
+
+const moduleTypeName = computed(() => {
+  const types = { 0: 'Camera PT', 1: 'RoArm-M2' }
+  return types[settingsStore.settings.moduleType] || 'None'
+})
+
+// 保存设置
+async function saveSettings() {
+  const success = await settingsStore.saveConfig()
+  if (success) {
+    toast.success('Configuration saved successfully')
+  } else {
+    toast.error('Failed to save configuration')
+  }
 }
 
-function saveSettings() {
-  console.log('Save settings:', settings.value)
-  updateLastSync()
+// 重置设置
+async function resetSettings() {
+  if (confirm('Are you sure you want to reset all settings to defaults?')) {
+    await settingsStore.resetToDefaults()
+    toast.info('Settings reset to defaults')
+  }
 }
 
-function resetSettings() {
-  console.log('Reset to defaults')
+// 刷新配置
+async function refreshConfig() {
+  await settingsStore.fetchConfig()
+  toast.info('Configuration refreshed')
 }
 
+// 导出配置
 function exportConfig() {
-  console.log('Export configuration')
+  settingsStore.exportConfig()
+  toast.success('Configuration exported')
 }
 
-function importConfig() {
-  console.log('Import configuration')
+// 触发导入
+function triggerImport() {
+  fileInput.value?.click()
 }
 
-function rebootSystem() {
-  console.log('Reboot system')
+// 处理导入
+async function handleImport(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  try {
+    await settingsStore.importConfig(file)
+    toast.success('Configuration imported successfully')
+  } catch (err) {
+    toast.error('Failed to import configuration')
+  }
+
+  // 清除文件输入
+  e.target.value = ''
+}
+
+// 重启系统
+async function rebootSystem() {
+  if (confirm('Are you sure you want to reboot the system?')) {
+    const success = await settingsStore.rebootSystem()
+    if (success) {
+      toast.info('System is rebooting...')
+    } else {
+      toast.error('Failed to reboot system')
+    }
+  }
 }
 
 // Servo control functions
 async function setServoMid(id) {
   try {
     await apiSetServoMid(id)
-    console.log(`Servo ${id} mid position set`)
+    toast.success(`Servo ${id} mid position set`)
   } catch (e) {
-    console.error('Set servo mid failed:', e)
+    toast.error('Set servo mid failed')
   }
 }
 
@@ -401,31 +609,113 @@ async function toggleServoRelease() {
       await setServoTorque(servo.value.panId, true)
       await setServoTorque(servo.value.tiltId, true)
       servoReleased.value = false
+      toast.info('Servos locked')
     } else {
       // Release servos
       await apiReleaseServo()
       servoReleased.value = true
+      toast.info('Servos released')
     }
   } catch (e) {
-    console.error('Toggle servo release failed:', e)
+    toast.error('Toggle servo release failed')
   }
 }
 
 async function changeServoId() {
   if (servo.value.oldId === servo.value.newId) {
-    console.warn('Old ID and new ID are the same')
+    toast.warning('Old ID and new ID are the same')
     return
   }
   try {
     await apiSetServoId(servo.value.oldId, servo.value.newId)
-    console.log(`Servo ID changed: ${servo.value.oldId} -> ${servo.value.newId}`)
+    toast.success(`Servo ID changed: ${servo.value.oldId} -> ${servo.value.newId}`)
   } catch (e) {
-    console.error('Change servo ID failed:', e)
+    toast.error('Change servo ID failed')
+  }
+}
+
+// OTA 更新方法
+async function fetchVersionInfo() {
+  try {
+    const info = await getVersion()
+    versionInfo.value = info
+  } catch (e) {
+    console.error('Failed to fetch version info:', e)
+  }
+}
+
+async function handleCheckUpdate() {
+  checkingUpdate.value = true
+  try {
+    const result = await checkUpdate()
+    updateStatus.value = {
+      hasUpdate: result.has_update || false,
+      commits_behind: result.commits_behind || 0,
+      changelog: result.changelog || []
+    }
+    if (result.has_update) {
+      toast.info(`${result.commits_behind} update(s) available`)
+    } else {
+      toast.success('Already up to date')
+    }
+  } catch (e) {
+    toast.error('Failed to check updates')
+  } finally {
+    checkingUpdate.value = false
+  }
+}
+
+async function handleDoUpdate() {
+  if (!confirm('Are you sure you want to install the update? The service will restart after update.')) {
+    return
+  }
+
+  updating.value = true
+  try {
+    const result = await doUpdate()
+    if (result.success) {
+      toast.success('Update completed! Restarting service...')
+      // 尝试重启服务
+      try {
+        await restartService()
+      } catch (e) {
+        // 服务重启可能会断开连接，这是正常的
+      }
+      // 提示用户刷新页面
+      setTimeout(() => {
+        if (confirm('Update installed. Refresh page to see changes?')) {
+          window.location.reload()
+        }
+      }, 2000)
+    } else {
+      toast.error(result.message || 'Update failed')
+    }
+  } catch (e) {
+    toast.error('Update failed: ' + (e.message || 'Unknown error'))
+  } finally {
+    updating.value = false
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (e) {
+    return dateStr
   }
 }
 
 onMounted(() => {
-  updateLastSync()
+  settingsStore.fetchConfig()
+  fetchVersionInfo()
 })
 </script>
 
@@ -469,6 +759,15 @@ onMounted(() => {
 
 .header-subtitle .prefix {
   @apply text-primary;
+}
+
+.header-status {
+  @apply flex items-center gap-2 text-xs font-orbitron text-primary;
+}
+
+.loading-indicator {
+  @apply w-2 h-2 rounded-full bg-primary;
+  animation: pulse 1s ease-in-out infinite;
 }
 
 /* Settings Grid */
@@ -546,6 +845,10 @@ onMounted(() => {
 /* Radio Group */
 .radio-group {
   @apply flex gap-2;
+}
+
+.radio-group.triple {
+  @apply grid grid-cols-3 gap-2;
 }
 
 .radio-item {
@@ -630,7 +933,7 @@ onMounted(() => {
 
 /* Actions Panel */
 .actions-panel {
-  @apply flex items-center justify-between p-5;
+  @apply flex items-center justify-between p-5 flex-wrap gap-4;
   background: linear-gradient(135deg, rgba(10, 22, 40, 0.9) 0%, rgba(3, 7, 18, 0.95) 100%);
   border: 1px solid rgba(0, 240, 255, 0.15);
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
@@ -638,7 +941,7 @@ onMounted(() => {
 
 .actions-left,
 .actions-right {
-  @apply flex items-center gap-3;
+  @apply flex items-center gap-3 flex-wrap;
 }
 
 /* Animations */
@@ -661,6 +964,11 @@ onMounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Servo Config Panel */
@@ -726,5 +1034,90 @@ onMounted(() => {
 
 .panel-badge.warning {
   @apply bg-warning/20 text-warning border border-warning/30;
+}
+
+/* OTA Update Styles */
+.version-info {
+  @apply space-y-2 p-3 rounded;
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.version-row {
+  @apply flex justify-between items-center;
+}
+
+.version-label {
+  @apply text-[10px] font-orbitron tracking-wider text-dark-text-tertiary uppercase;
+}
+
+.version-value {
+  @apply text-sm text-dark-text-primary;
+}
+
+.version-value.mono {
+  @apply font-mono text-primary;
+}
+
+.update-status {
+  @apply mt-4 space-y-3;
+}
+
+.update-badge {
+  @apply flex items-center gap-2 px-3 py-2 rounded;
+  @apply text-sm font-mono text-warning;
+  @apply bg-warning/10 border border-warning/30;
+}
+
+.update-badge svg {
+  @apply w-4 h-4;
+}
+
+.changelog {
+  @apply p-3 rounded space-y-1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.changelog-title {
+  @apply text-[10px] font-orbitron tracking-wider text-primary uppercase mb-2;
+}
+
+.changelog-item {
+  @apply text-xs font-mono text-dark-text-secondary;
+  @apply pl-3 border-l-2 border-primary/30;
+}
+
+.update-actions {
+  @apply flex gap-3 mt-4;
+}
+
+.update-progress {
+  @apply mt-4 space-y-2;
+}
+
+.progress-bar {
+  @apply h-1 w-full rounded-full overflow-hidden;
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.progress-fill {
+  @apply h-full rounded-full;
+  width: 100%;
+  background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-blue));
+  animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+.progress-text {
+  @apply text-xs font-mono text-dark-text-tertiary text-center;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 0.5; transform: translateX(-100%); }
+  50% { opacity: 1; transform: translateX(0); }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 </style>
