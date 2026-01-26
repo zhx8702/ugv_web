@@ -123,7 +123,7 @@ const {
   detections
 } = storeToRefs(controlStore)
 
-const { setDetectionMode, toggleTracking, toggleAutoDrive } = controlStore
+const { setDetectionMode, setDetectionReaction, toggleTracking, toggleAutoDrive } = controlStore
 
 // 合并后的CV模式列表（移除重复，统一管理）
 const cvModes = [
@@ -155,7 +155,7 @@ const selectMode = (mode) => {
 }
 
 const setReaction = (reaction) => {
-  detectionReaction.value = reaction
+  setDetectionReaction(reaction)
 }
 </script>
 

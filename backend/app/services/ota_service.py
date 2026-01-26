@@ -82,6 +82,63 @@ class OTAService:
 
         return 'unknown'
 
+    def get_version_info(self):
+        """
+        获取完整的版本信息
+
+        Returns:
+            dict: 包含版本、git信息、最后更新时间等
+        """
+        version = self.get_current_version()
+        git_hash = None
+        git_branch = None
+        last_update = None
+
+        try:
+            # 获取当前 commit hash
+            result = subprocess.run(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                cwd=self.repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                git_hash = result.stdout.strip()
+
+            # 获取当前分支
+            result = subprocess.run(
+                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                cwd=self.repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                git_branch = result.stdout.strip()
+
+            # 获取最后 commit 时间
+            result = subprocess.run(
+                ['git', 'log', '-1', '--format=%ci'],
+                cwd=self.repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                last_update = result.stdout.strip()
+
+        except Exception as e:
+            logger.error(f'Failed to get git info: {e}')
+
+        return {
+            'version': version,
+            'sbc_version': version.lstrip('v').split('-')[0] if version != 'unknown' else '0.0.0',
+            'git_hash': git_hash,
+            'git_branch': git_branch,
+            'last_update': last_update
+        }
+
     def check_update(self):
         """
         检查是否有更新

@@ -121,8 +121,9 @@ def start_background_tasks(app):
     start_bg_tasks(app)
 
     # 初始化 CV 服务
-    from app.services.cv_service import init_cv_service
+    from app.services.cv_service import init_cv_service, set_socketio
     cv_service = init_cv_service(app.config)
+    set_socketio(socketio)  # 设置 socketio 用于检测通知
     app.logger.info("CV service initialized")
 
     # 启动视频流 - 传递 Flask 配置确保路径一致
@@ -139,6 +140,7 @@ def start_background_tasks(app):
     }
     stream = get_video_stream(video_config)
     stream.set_cv_service(cv_service)  # 连接 CV 服务到视频流
+    cv_service.set_video_stream(stream)  # 连接视频流到 CV 服务（用于检测反应拍照/录像）
     stream.start()
     app.logger.info(f"Video stream started, photos_path: {app.config.get('PHOTOS_PATH')}")
 

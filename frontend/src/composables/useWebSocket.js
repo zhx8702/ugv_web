@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { io } from 'socket.io-client'
 import { useSystemStore } from '@/stores/system'
 import { useToast } from '@/composables/useToast'
@@ -8,6 +8,14 @@ const connected = ref(false)
 const latency = ref(0)
 let pingInterval = null
 let pingStartTime = 0
+
+// OTA 更新进度状态（全局共享）
+const otaProgress = reactive({
+  active: false,
+  step: '',
+  progress: 0,
+  message: ''
+})
 
 export function useWebSocket() {
   const systemStore = useSystemStore()
@@ -90,6 +98,42 @@ export function useWebSocket() {
       console.error('WebSocket error:', error)
       toast.error(error.message || 'WebSocket error')
     })
+
+    // Detection action notifications
+    socket.on('detection_action', (data) => {
+      console.log('Detection action:', data)
+      const { action, message, mode } = data
+      const icon = action === 'capture' ? '📷' : action === 'record_start' ? '⏺️' : '⏹️'
+      const toastMessage = `${icon} ${mode}: ${message}`
+
+      if (action === 'capture') {
+        toast.success(toastMessage)
+      } else if (action === 'record_start') {
+        toast.info(toastMessage)
+      } else if (action === 'record_stop') {
+        toast.info(toastMessage)
+      }
+    })
+
+    // OTA 更新进度通知
+    socket.on('ota_progress', (data) => {
+      console.log('OTA progress:', data)
+      const { step, progress, message } = data
+
+      otaProgress.step = step
+      otaProgress.progress = progress
+      otaProgress.message = message
+
+      if (step === 'done') {
+        otaProgress.active = false
+        toast.success('Update completed successfully!')
+      } else if (step === 'error') {
+        otaProgress.active = false
+        toast.error(message || 'Update failed')
+      } else {
+        otaProgress.active = true
+      }
+    })
   }
 
   function disconnect() {
@@ -126,6 +170,7 @@ export function useWebSocket() {
     socket,
     connected,
     latency,
+    otaProgress,
     connect,
     disconnect,
     emit,

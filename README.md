@@ -29,6 +29,42 @@ web-control/
 
 ### 开发环境
 
+#### Windows 开发
+
+**1. 安装 uv（Python 包管理器）：**
+```powershell
+# PowerShell（管理员）
+irm https://astral.sh/uv/install.ps1 | iex
+
+# 或使用 pip
+pip install uv
+```
+
+**2. 启动后端：**
+```powershell
+cd backend
+
+# 创建虚拟环境并安装依赖
+uv venv
+uv pip install -e .
+
+# 启动开发服务器
+.venv\Scripts\python run.py
+# 访问 http://localhost:5080
+```
+
+**3. 启动前端（可选，开发时用于热重载）：**
+```powershell
+cd frontend
+npm install
+npm run dev
+# 访问 http://localhost:3080
+```
+
+> **注意**：Windows 下后端运行在模拟模式（MOCK_MODE=true），无需真实硬件。
+
+#### Linux / macOS 开发
+
 **前端开发：**
 ```bash
 cd frontend

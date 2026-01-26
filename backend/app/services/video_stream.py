@@ -209,14 +209,16 @@ class VideoStream:
 
     def _try_usb_camera(self) -> bool:
         """尝试初始化USB摄像头（尝试多个索引）"""
+        import sys
         for index in range(4):
             try:
                 logger.info(f"Trying USB camera at index {index}")
-                # 使用默认后端（和原代码一致）
+                # 使用默认后端
                 camera = cv2.VideoCapture(index)
                 if camera.isOpened():
-                    # 先设置 MJPEG 编码，再读取测试帧
-                    camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                    # Linux 上设置 MJPEG 编码以获得更好性能，Windows 跳过（兼容性问题）
+                    if sys.platform != 'win32':
+                        camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 
                     # 读取一帧测试是否真正可用
                     ret, _ = camera.read()
@@ -228,28 +230,36 @@ class VideoStream:
                     self.camera = camera
                     self.camera_index = index
 
-                    # 设置分辨率
-                    self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-                    self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+                    # Windows 跳过大部分设置，使用摄像头默认值（兼容性更好）
+                    if sys.platform != 'win32':
+                        # 设置分辨率
+                        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+                        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
 
-                    # 设置帧率
-                    self.camera.set(cv2.CAP_PROP_FPS, self.target_fps)
+                        # 设置帧率
+                        self.camera.set(cv2.CAP_PROP_FPS, self.target_fps)
 
-                    # 设置自动曝光（1=手动, 3=自动）
-                    self.camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
+                        # 设置自动曝光（1=手动, 3=自动）
+                        self.camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
 
-                    # 设置缓冲区大小为1，减少延迟
-                    self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                        # 设置缓冲区大小为1，减少延迟
+                        self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
                     # 获取实际值
                     actual_fps = self.camera.get(cv2.CAP_PROP_FPS)
-                    actual_width = self.camera.get(cv2.CAP_PROP_FRAME_WIDTH)
-                    actual_height = self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                    actual_width = int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    actual_height = int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
                     fourcc = int(self.camera.get(cv2.CAP_PROP_FOURCC))
                     fourcc_str = ''.join([chr((fourcc >> 8 * i) & 0xFF) for i in range(4)])
 
+                    # Windows 上更新为实际分辨率（因为没有设置分辨率）
+                    if sys.platform == 'win32':
+                        self.width = actual_width
+                        self.height = actual_height
+                        self.target_fps = actual_fps if actual_fps > 0 else self.target_fps
+
                     self.camera_type = 'usb'
-                    logger.info(f"USB camera initialized at index {index}: {int(actual_width)}x{int(actual_height)} @ {actual_fps:.1f}fps, codec={fourcc_str}")
+                    logger.info(f"USB camera initialized at index {index}: {actual_width}x{actual_height} @ {actual_fps:.1f}fps, codec={fourcc_str}")
                     return True
                 else:
                     logger.debug(f"Index {index} can't be opened")
@@ -393,9 +403,10 @@ class VideoStream:
             elif self.camera_type == 'csi':
                 # CSI摄像头（Picamera2）
                 frame = self.picam2.capture_array()
-                # XRGB8888 -> BGR
+                # XRGB8888 格式在 Picamera2 中是 BGRX 顺序
                 if frame.shape[2] == 4:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                    # 直接取前3个通道（BGR），比 cvtColor 更高效
+                    frame = frame[:, :, :3].copy()  # copy() 确保内存连续
                 # 确保帧大小与配置一致
                 if frame.shape[:2] != (self.height, self.width):
                     frame = cv2.resize(frame, (self.width, self.height))
@@ -447,10 +458,16 @@ class VideoStream:
 
         # 处理录像
         if self.video_recording and self.video_writer:
-            # 添加录制指示器
-            cv2.circle(frame, (15, 15), 5, (0, 0, 255), -1)
-            # 写入视频
-            self.video_writer.append_data(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            try:
+                # 添加录制指示器
+                cv2.circle(frame, (15, 15), 5, (0, 0, 255), -1)
+                # 写入视频 - 确保帧是连续的内存布局
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                if not rgb_frame.flags['C_CONTIGUOUS']:
+                    rgb_frame = np.ascontiguousarray(rgb_frame)
+                self.video_writer.append_data(rgb_frame)
+            except Exception as e:
+                logger.error(f"Error writing video frame: {e}")
 
         # 处理缩放
         if self.scale_rate > 1:

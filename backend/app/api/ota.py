@@ -15,14 +15,19 @@ ota_bp = Blueprint('ota', __name__, url_prefix='/api/ota')
 @ota_bp.route('/version')
 def get_version():
     """
-    获取当前版本
+    获取当前版本信息
 
     Returns:
-        JSON: {'version': 'v2.0.0'}
+        JSON: {
+            'version': 'v2.0.0',
+            'sbc_version': '2.0.0',
+            'git_hash': 'abc1234',
+            'git_branch': 'main',
+            'last_update': '2026-01-20 10:30:00 +0800'
+        }
     """
     ota = get_ota_service()
-    version = ota.get_current_version()
-    return jsonify({'version': version})
+    return jsonify(ota.get_version_info())
 
 
 @ota_bp.route('/check-update')
@@ -35,12 +40,21 @@ def check_update():
             'has_update': bool,
             'current_version': str,
             'latest_version': str,
-            'commits_behind': int
+            'commits_behind': int,
+            'changelog': list  # 更新日志
         }
     """
     try:
         ota = get_ota_service()
         result = ota.check_update()
+
+        # 如果有更新，获取 changelog
+        if result.get('has_update'):
+            commits = ota.get_update_log(limit=result.get('commits_behind', 5))
+            result['changelog'] = [c['message'] for c in commits]
+        else:
+            result['changelog'] = []
+
         return jsonify(result)
     except Exception as e:
         logger.error(f'Check update error: {e}')

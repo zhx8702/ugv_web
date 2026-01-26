@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" :class="{ recording: isRecording }">
+        <button class="btn btn-primary" :class="{ recording: isRecording }" @click="toggleRecording">
           <span class="rec-indicator" v-if="isRecording"></span>
           <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
             <circle cx="12" cy="12" r="10" />
@@ -163,7 +163,7 @@
       </div>
       <h3 class="empty-title">NO RECORDINGS FOUND</h3>
       <p class="empty-text">Start recording mission footage to build your archive</p>
-      <button class="btn btn-primary">
+      <button class="btn btn-primary" @click="toggleRecording">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
           <circle cx="12" cy="12" r="10" />
           <circle cx="12" cy="12" r="4" fill="currentColor" />
@@ -176,7 +176,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getVideos, deleteVideo as apiDeleteVideo } from '@/services/api'
+import { getVideos, deleteVideo as apiDeleteVideo, startRecording, stopRecording } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import { useSystemStore } from '@/stores/system'
 
@@ -292,6 +292,25 @@ async function deleteSelected() {
   } catch (error) {
     console.error('Failed to delete videos:', error)
     toast.error('Failed to delete videos')
+  }
+}
+
+async function toggleRecording() {
+  try {
+    if (isRecording.value) {
+      await stopRecording()
+      isRecording.value = false
+      toast.success('Recording stopped')
+      // 延迟刷新列表，等待视频保存
+      setTimeout(() => loadVideos(), 1000)
+    } else {
+      await startRecording()
+      isRecording.value = true
+      toast.success('Recording started')
+    }
+  } catch (error) {
+    console.error('Failed to toggle recording:', error)
+    toast.error('Failed to toggle recording')
   }
 }
 </script>

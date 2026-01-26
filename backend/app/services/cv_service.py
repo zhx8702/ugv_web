@@ -10,10 +10,20 @@ import threading
 import logging
 import math
 import time
+import datetime
 from collections import deque
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# SocketIO instance for emitting notifications
+_socketio = None
+
+
+def set_socketio(socketio):
+    """Set the socketio instance for notifications"""
+    global _socketio
+    _socketio = socketio
 
 
 class CVService:
@@ -104,6 +114,11 @@ class CVService:
         # 外部控制器引用
         self.motor_controller = None
         self.video_stream = None
+
+        # 检测反应控制
+        self.last_capture_time = datetime.datetime.now()
+        self.last_detection_time = datetime.datetime.now()
+        self.is_reaction_recording = False  # 当前是否因检测触发了录像
 
         # 模型路径
         models_path = Path(self.config.get('models_path', './models'))
@@ -216,7 +231,87 @@ class CVService:
     def set_reaction_mode(self, mode: int):
         """设置检测反应模式"""
         self.reaction_mode = mode
+        # 切换模式时停止之前的录像
+        if self.is_reaction_recording and self.video_stream:
+            self.video_stream.stop_recording()
+            self.is_reaction_recording = False
         logger.info(f'Reaction mode set to {mode}')
+
+    def _handle_detection_reaction(self, has_detection: bool):
+        """
+        处理检测反应（拍照/录像）
+
+        Args:
+            has_detection: 是否检测到目标
+        """
+        if self.reaction_mode == self.RE_NONE or not self.video_stream:
+            return
+
+        now = datetime.datetime.now()
+
+        if has_detection:
+            self.last_detection_time = now
+            elapsed = (now - self.last_capture_time).total_seconds()
+
+            # 至少间隔3秒才触发一次
+            if elapsed >= 3:
+                if self.reaction_mode == self.RE_CAPTURE:
+                    # 拍照
+                    self.video_stream.capture_photo()
+                    logger.info('Detection reaction: photo captured')
+                    # 发送通知
+                    self._emit_detection_notification('capture', 'Photo captured')
+                elif self.reaction_mode == self.RE_RECORD:
+                    # 开始录像（如果还没开始）
+                    if not self.is_reaction_recording:
+                        self.video_stream.start_recording()
+                        self.is_reaction_recording = True
+                        logger.info('Detection reaction: recording started')
+                        # 发送通知
+                        self._emit_detection_notification('record_start', 'Recording started')
+                self.last_capture_time = now
+        else:
+            # 没有检测到目标，检查是否需要停止录像
+            if self.is_reaction_recording:
+                elapsed_since_detection = (now - self.last_detection_time).total_seconds()
+                # 5秒没有检测到目标就停止录像
+                if elapsed_since_detection >= 5:
+                    self.video_stream.stop_recording()
+                    self.is_reaction_recording = False
+                    logger.info('Detection reaction: recording stopped (no detection)')
+                    # 发送通知
+                    self._emit_detection_notification('record_stop', 'Recording stopped')
+
+    def _emit_detection_notification(self, action: str, message: str):
+        """
+        发送检测动作通知到前端
+
+        Args:
+            action: 动作类型 ('capture', 'record_start', 'record_stop')
+            message: 显示的消息
+        """
+        global _socketio
+        if _socketio:
+            try:
+                # 获取当前模式名称
+                mode_names = {
+                    self.CV_MOTION: 'Motion',
+                    self.CV_FACE: 'Face',
+                    self.CV_OBJECTS: 'Objects',
+                    self.CV_COLOR: 'Color',
+                    self.MP_HAND: 'Hand',
+                    self.MP_FACE: 'MP Face',
+                    self.MP_POSE: 'Pose'
+                }
+                mode_name = mode_names.get(self.cv_mode, 'Detection')
+
+                _socketio.emit('detection_action', {
+                    'action': action,
+                    'message': message,
+                    'mode': mode_name
+                })
+            except Exception as e:
+                logger.error(f'Error emitting detection notification: {e}')
 
     def set_motion_lock(self, locked: bool):
         """设置运动锁定（追踪开关）"""
@@ -373,6 +468,9 @@ class CVService:
 
         self.overlay = overlay
 
+        # 处理检测反应（拍照/录像）
+        self._handle_detection_reaction(len(detection_results) > 0)
+
     def _detect_faces(self, frame: np.ndarray):
         """人脸检测（Haar级联）"""
         if self.face_cascade is None:
@@ -421,6 +519,9 @@ class CVService:
 
         self.overlay = overlay
 
+        # 处理检测反应（拍照/录像）
+        self._handle_detection_reaction(len(faces) > 0)
+
     def _detect_objects(self, frame: np.ndarray):
         """物体检测（MobileNet SSD）"""
         if self.object_net is None:
@@ -464,6 +565,9 @@ class CVService:
             self.detection_count = len(detection_results)
 
         self.overlay = overlay
+
+        # 处理检测反应（拍照/录像）
+        self._handle_detection_reaction(len(detection_results) > 0)
 
     def _detect_color(self, frame: np.ndarray):
         """颜色检测与追踪"""
@@ -551,6 +655,10 @@ class CVService:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         self.overlay = overlay
+
+        # 处理检测反应（拍照/录像）
+        has_detection = results.multi_hand_landmarks is not None and len(results.multi_hand_landmarks) > 0
+        self._handle_detection_reaction(has_detection)
 
     def _auto_drive(self, frame: np.ndarray):
         """巡线自动驾驶"""
@@ -649,11 +757,16 @@ class CVService:
         cv2.putText(overlay, 'MediaPipe Faces', (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
+        has_detection = False
         if results.detections:
+            has_detection = True
             for detection in results.detections:
                 self.mp_draw.draw_detection(overlay, detection)
 
         self.overlay = overlay
+
+        # 处理检测反应（拍照/录像）
+        self._handle_detection_reaction(has_detection)
 
     def _mediapipe_pose(self, frame: np.ndarray):
         """MediaPipe姿态检测"""
@@ -668,12 +781,17 @@ class CVService:
         cv2.putText(overlay, 'MediaPipe Pose', (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
+        has_detection = False
         if results.pose_landmarks:
+            has_detection = True
             self.mp_draw.draw_landmarks(
                 overlay, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS
             )
 
         self.overlay = overlay
+
+        # 处理检测反应（拍照/录像）
+        self._handle_detection_reaction(has_detection)
 
     def get_status(self) -> dict:
         """获取CV服务状态"""

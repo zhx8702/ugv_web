@@ -154,6 +154,23 @@ export const useControlStore = defineStore('control', () => {
     }
   }
 
+  function setDetectionReaction(reaction) {
+    detectionReaction.value = reaction
+    // 发送命令到后端
+    const reactionMap = {
+      none: 10401,    // re_none
+      capture: 10402, // re_capt
+      record: 10403   // re_reco
+    }
+    if (reactionMap[reaction]) {
+      if (connected.value) {
+        sendCommand(reactionMap[reaction])
+      } else {
+        sendApiCommand(reactionMap[reaction])
+      }
+    }
+  }
+
   function toggleTracking() {
     tracking.value = !tracking.value
     const code = tracking.value ? 10501 : 10502 // mc_lock / mc_unlo
@@ -446,6 +463,7 @@ export const useControlStore = defineStore('control', () => {
     movePT,
     centerPT,
     setDetectionMode,
+    setDetectionReaction,
     toggleTracking,
     toggleAutoDrive,
     setZoom,

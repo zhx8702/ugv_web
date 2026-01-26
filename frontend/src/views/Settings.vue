@@ -418,11 +418,14 @@
           </div>
 
           <!-- Update Progress -->
-          <div class="update-progress" v-if="updating">
+          <div class="update-progress" v-if="updating || otaProgress.active">
             <div class="progress-bar">
-              <div class="progress-fill"></div>
+              <div class="progress-fill" :style="{ width: otaProgress.progress + '%', animation: otaProgress.progress > 0 ? 'none' : undefined }"></div>
             </div>
-            <div class="progress-text">Downloading and applying update...</div>
+            <div class="progress-text">
+              <span class="progress-step">{{ otaProgress.step?.toUpperCase() || 'PREPARING' }}</span>
+              <span class="progress-message">{{ otaProgress.message || 'Starting update...' }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -485,9 +488,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
+import { useWebSocket } from '@/composables/useWebSocket'
 import {
   setServoId as apiSetServoId,
   setServoMid as apiSetServoMid,
@@ -501,6 +506,8 @@ import {
 
 const settingsStore = useSettingsStore()
 const toast = useToast()
+const { confirm } = useConfirm()
+const { otaProgress } = useWebSocket()
 
 const servo = ref({
   panId: 1,
@@ -541,7 +548,14 @@ async function saveSettings() {
 
 // 重置设置
 async function resetSettings() {
-  if (confirm('Are you sure you want to reset all settings to defaults?')) {
+  const confirmed = await confirm({
+    title: 'Reset Settings',
+    message: 'Are you sure you want to reset all settings to defaults? This action cannot be undone.',
+    type: 'warning',
+    confirmText: 'RESET',
+    cancelText: 'CANCEL'
+  })
+  if (confirmed) {
     await settingsStore.resetToDefaults()
     toast.info('Settings reset to defaults')
   }
@@ -582,7 +596,14 @@ async function handleImport(e) {
 
 // 重启系统
 async function rebootSystem() {
-  if (confirm('Are you sure you want to reboot the system?')) {
+  const confirmed = await confirm({
+    title: 'Reboot System',
+    message: 'Are you sure you want to reboot the system? All active connections will be lost.',
+    type: 'danger',
+    confirmText: 'REBOOT',
+    cancelText: 'CANCEL'
+  })
+  if (confirmed) {
     const success = await settingsStore.rebootSystem()
     if (success) {
       toast.info('System is rebooting...')
@@ -666,36 +687,52 @@ async function handleCheckUpdate() {
 }
 
 async function handleDoUpdate() {
-  if (!confirm('Are you sure you want to install the update? The service will restart after update.')) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Install Update',
+    message: 'Are you sure you want to install the update? The service will restart after the update completes.',
+    type: 'info',
+    confirmText: 'INSTALL',
+    cancelText: 'CANCEL'
+  })
+  if (!confirmed) return
 
   updating.value = true
   try {
     const result = await doUpdate()
     if (result.success) {
-      toast.success('Update completed! Restarting service...')
-      // 尝试重启服务
-      try {
-        await restartService()
-      } catch (e) {
-        // 服务重启可能会断开连接，这是正常的
-      }
-      // 提示用户刷新页面
-      setTimeout(() => {
-        if (confirm('Update installed. Refresh page to see changes?')) {
-          window.location.reload()
-        }
-      }, 2000)
+      // 更新已启动，通过 WebSocket 监听进度
+      toast.info('Update started, please wait...')
     } else {
-      toast.error(result.message || 'Update failed')
+      toast.error(result.message || 'Failed to start update')
+      updating.value = false
     }
   } catch (e) {
     toast.error('Update failed: ' + (e.message || 'Unknown error'))
-  } finally {
     updating.value = false
   }
 }
+
+// 监听 OTA 进度变化
+watch(() => otaProgress.step, async (step) => {
+  if (step === 'done') {
+    updating.value = false
+    // 更新完成，提示刷新页面
+    setTimeout(async () => {
+      const shouldRefresh = await confirm({
+        title: 'Update Complete',
+        message: 'Update has been installed successfully. Refresh the page to see the changes?',
+        type: 'info',
+        confirmText: 'REFRESH',
+        cancelText: 'LATER'
+      })
+      if (shouldRefresh) {
+        window.location.reload()
+      }
+    }, 1000)
+  } else if (step === 'error') {
+    updating.value = false
+  }
+})
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -1103,18 +1140,26 @@ onMounted(() => {
 
 .progress-fill {
   @apply h-full rounded-full;
-  width: 100%;
   background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-blue));
+  transition: width 0.3s ease;
   animation: progressPulse 1.5s ease-in-out infinite;
 }
 
 .progress-text {
-  @apply text-xs font-mono text-dark-text-tertiary text-center;
+  @apply flex flex-col items-center gap-1 text-center;
+}
+
+.progress-step {
+  @apply text-[10px] font-orbitron tracking-wider text-primary;
+}
+
+.progress-message {
+  @apply text-xs font-mono text-dark-text-tertiary;
 }
 
 @keyframes progressPulse {
-  0%, 100% { opacity: 0.5; transform: translateX(-100%); }
-  50% { opacity: 1; transform: translateX(0); }
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
 .spinning {

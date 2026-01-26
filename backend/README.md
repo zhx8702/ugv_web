@@ -6,6 +6,25 @@ Flask 后端 API，支持 WebSocket 实时通信、WebRTC 视频流。
 
 ## 开发
 
+### Windows
+
+```powershell
+# 安装 uv（如果还没安装）
+irm https://astral.sh/uv/install.ps1 | iex
+# 或: pip install uv
+
+# 创建虚拟环境并安装依赖
+uv venv
+uv pip install -e .
+
+# 启动开发服务器
+.venv\Scripts\python run.py
+```
+
+> Windows 下自动启用模拟模式，无需连接真实硬件。
+
+### Linux / macOS
+
 ```bash
 # 安装依赖
 uv sync

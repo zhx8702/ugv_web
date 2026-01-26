@@ -19,7 +19,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary">
+        <button class="btn btn-primary" @click="capture">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
             <circle cx="12" cy="13" r="4" />
@@ -139,7 +139,7 @@
       </div>
       <h3 class="empty-title">NO IMAGES IN ARCHIVE</h3>
       <p class="empty-text">Capture reconnaissance images to populate the archive</p>
-      <button class="btn btn-primary">
+      <button class="btn btn-primary" @click="capture">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
           <circle cx="12" cy="13" r="4" />
@@ -152,7 +152,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getPhotos, deletePhoto } from '@/services/api'
+import { getPhotos, deletePhoto, capturePhoto } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import { useSystemStore } from '@/stores/system'
 
@@ -239,6 +239,18 @@ async function deleteSelected() {
   } catch (error) {
     console.error('Failed to delete photos:', error)
     toast.error('Failed to delete photos')
+  }
+}
+
+async function capture() {
+  try {
+    await capturePhoto()
+    toast.success('Photo captured')
+    // 延迟刷新列表，等待照片保存
+    setTimeout(() => loadPhotos(), 500)
+  } catch (error) {
+    console.error('Failed to capture photo:', error)
+    toast.error('Failed to capture photo')
   }
 }
 </script>

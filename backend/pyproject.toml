@@ -60,9 +60,9 @@ dependencies = [
 mediapipe = [
     "mediapipe>=0.10.0",
 ]
-# Raspberry Pi CSI camera
+# Raspberry Pi CSI camera (Linux only)
 rpi = [
-    "picamera2>=0.3.17",
+    "picamera2>=0.3.17; sys_platform == 'linux'",
 ]
 # OAK depth camera
 oak = [

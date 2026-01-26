@@ -5,6 +5,7 @@
       <router-view />
     </main>
     <ToastContainer />
+    <ConfirmDialog />
     <ConnectionIndicator />
   </div>
 </template>
@@ -15,6 +16,7 @@ import { useSystemStore } from '@/stores/system'
 import { useWebSocket } from '@/composables/useWebSocket'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ToastContainer from '@/components/common/ToastContainer.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ConnectionIndicator from '@/components/common/ConnectionIndicator.vue'
 
 const systemStore = useSystemStore()
