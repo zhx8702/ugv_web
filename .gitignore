@@ -32,6 +32,7 @@ logs/
 # Local config
 .env.local
 .env.*.local
+backend/config/settings.json
 
 # Keep backend/static (built frontend assets)
 # This directory is committed to repo by GitHub Actions
