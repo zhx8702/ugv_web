@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '@/services/api'
+import { getSettings, updateSettings, updatePreferences, rebootSystem as apiRebootSystem } from '@/services/api'
 
 // 默认配置
 const defaultSettings = {
@@ -66,7 +66,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function fetchConfig() {
     loading.value = true
     try {
-      const config = await api.get('/settings')
+      const config = await getSettings()
 
       if (config) {
         // 映射后端配置到前端
@@ -153,7 +153,7 @@ export const useSettingsStore = defineStore('settings', () => {
         }
       }
 
-      const result = await api.put('/settings', configData)
+      const result = await updateSettings(configData)
 
       if (result && result.success) {
         lastSyncTime.value = new Date()
@@ -182,7 +182,7 @@ export const useSettingsStore = defineStore('settings', () => {
         vibration: preferences.value.vibration
       }
 
-      const result = await api.put('/settings/preferences', prefsData)
+      const result = await updatePreferences(prefsData)
       return result && result.success
     } catch (e) {
       console.error('Failed to save preferences:', e)
@@ -258,7 +258,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // 重启系统
   async function rebootSystem() {
     try {
-      await api.post('/system/reboot')
+      await apiRebootSystem()
       return true
     } catch (e) {
       console.error('Failed to reboot:', e)

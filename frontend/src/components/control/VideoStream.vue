@@ -305,6 +305,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useControlStore } from '@/stores/control'
 import { useSystemStore } from '@/stores/system'
+import { isMockMode as globalMockMode } from '@/services/api'
 
 const controlStore = useControlStore()
 const systemStore = useSystemStore()
@@ -552,6 +553,11 @@ const switchStream = async (mode) => {
 }
 
 const checkWebRTCAvailability = async () => {
+  // Mock 模式下跳过 WebRTC 检查
+  if (globalMockMode) {
+    webrtcAvailable.value = false
+    return
+  }
   try {
     const response = await fetch(`${apiBaseUrl.value}/video/webrtc/status`)
     if (response.ok) {
@@ -597,6 +603,10 @@ watch(videoRef, (newVideoEl) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  // Mock 模式下启用视频占位符
+  if (globalMockMode) {
+    mockMode.value = true
+  }
   checkWebRTCAvailability()
   fetchMediaCount()
 })
