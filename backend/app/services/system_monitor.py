@@ -31,7 +31,7 @@ class SystemMonitor:
         self.voltage_history = deque(maxlen=history_size)
 
         # Current values (smoothed)
-        self.voltage = 11.4  # Default voltage
+        self.voltage = None  # Populated only from valid hardware feedback.
         self.fps = 0
         self.rssi = -50
         self._cpu = 0
@@ -88,9 +88,9 @@ class SystemMonitor:
         return self._temp
 
     def update_voltage(self, voltage):
-        """Update voltage value (with smoothing)"""
+        """Update measured battery voltage with smoothing."""
         if voltage > 0:
-            self.voltage = self._smooth(self.voltage, voltage)
+            self.voltage = voltage if self.voltage is None else self._smooth(self.voltage, voltage)
 
     def update_fps(self, fps):
         """Update FPS value (with smoothing)"""
@@ -121,7 +121,7 @@ class SystemMonitor:
             'cpu': round(cpu, 1),
             'ram': round(ram, 1),
             'temperature': round(temp, 1),
-            'voltage': round(self.voltage, 2),
+            'voltage': round(self.voltage, 2) if self.voltage is not None else None,
             'fps': self.fps,
             'rssi': self.rssi,
             'timestamp': int(time.time())
@@ -142,7 +142,7 @@ class SystemMonitor:
         feedback[107] = status['temperature']   # Temperature
         feedback[108] = status['ram']           # RAM usage
         feedback[111] = status['rssi']          # RSSI
-        feedback[112] = status['voltage']       # Voltage
+        feedback[112] = status['voltage'] or 0  # Voltage, 0 when unavailable
         feedback[113] = status['fps']           # FPS
 
         return feedback

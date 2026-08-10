@@ -60,6 +60,11 @@ export const useControlStore = defineStore('control', () => {
   // 检测轮询
   let detectionPollTimer = null
 
+  const motionCommandInterval = 50
+  let lastMotionCommandAt = 0
+  let pendingMotionCommand = null
+  let motionCommandTimer = null
+
   // 方法
   function setSpeed(mode) {
     speedMode.value = mode
@@ -71,17 +76,49 @@ export const useControlStore = defineStore('control', () => {
     speedValue.value = speedMap[mode] || 0.66
   }
 
+  function dispatchMotionCommand(cmd) {
+    if (connected.value) {
+      sendJsonCommand(cmd)
+    } else {
+      sendApiJsonCommand(cmd)
+    }
+    lastMotionCommandAt = Date.now()
+  }
+
+  function flushPendingMotionCommand() {
+    motionCommandTimer = null
+    if (pendingMotionCommand) {
+      dispatchMotionCommand(pendingMotionCommand)
+      pendingMotionCommand = null
+    }
+  }
+
   function moveRover(leftSpeed, rightSpeed) {
     const cmd = {
       T: 1, // cmd_movition_ctrl
       L: leftSpeed * speedValue.value,
       R: rightSpeed * speedValue.value
     }
-    // Use WebSocket if connected, fallback to API
-    if (connected.value) {
-      sendJsonCommand(cmd)
+    const isStop = cmd.L === 0 && cmd.R === 0
+
+    if (isStop) {
+      pendingMotionCommand = null
+      if (motionCommandTimer) {
+        clearTimeout(motionCommandTimer)
+        motionCommandTimer = null
+      }
+      dispatchMotionCommand(cmd)
+      return
+    }
+
+    const remaining = motionCommandInterval - (Date.now() - lastMotionCommandAt)
+    if (remaining <= 0) {
+      dispatchMotionCommand(cmd)
     } else {
-      sendApiJsonCommand(cmd)
+      pendingMotionCommand = cmd
+      if (!motionCommandTimer) {
+        motionCommandTimer = setTimeout(flushPendingMotionCommand, remaining)
+      }
     }
   }
 

@@ -1,11 +1,11 @@
 <template>
   <div class="video-stream">
     <div class="video-container">
-      <!-- MJPEG Stream -->
+      <!-- MJPEG Stream (local or ROS2) -->
       <img
-        v-if="streamMode === 'mjpeg' && !mockMode"
+        v-if="(streamMode === 'mjpeg' || streamMode === 'ros2') && !mockMode"
         ref="mjpegRef"
-        :src="mjpegActive ? videoUrl : ''"
+        :src="mjpegActive ? activeVideoUrl : ''"
         class="video-feed"
         alt="Video Stream"
         @error="handleStreamError"
@@ -292,6 +292,14 @@
                 <span class="item-check">{{ streamMode === 'webrtc' ? '◆' : '◇' }}</span>
                 WEBRTC {{ !webrtcAvailable ? '(N/A)' : '' }}
               </button>
+              <button
+                @click="switchStream('ros2')"
+                :class="['dropdown-item', streamMode === 'ros2' ? 'active' : '', !ros2Store.connected ? 'disabled' : '']"
+                :disabled="!ros2Store.connected"
+              >
+                <span class="item-check">{{ streamMode === 'ros2' ? '◆' : '◇' }}</span>
+                ROS2 CAMERA {{ !ros2Store.connected ? '(N/A)' : '' }}
+              </button>
             </div>
           </div>
         </div>
@@ -305,10 +313,11 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useControlStore } from '@/stores/control'
 import { useSystemStore } from '@/stores/system'
-import { isMockMode as globalMockMode } from '@/services/api'
+import { useROS2Store } from '@/stores/ros2'
 
 const controlStore = useControlStore()
 const systemStore = useSystemStore()
+const ros2Store = useROS2Store()
 
 const {
   zoomLevel,
@@ -355,6 +364,16 @@ const videoUrl = computed(() => {
   const host = window.location.hostname
   const port = 5080
   return `http://${host}:${port}/video_feed`
+})
+
+const ros2VideoUrl = computed(() => {
+  const host = window.location.hostname
+  const ros2VideoPort = 8080
+  return `http://${host}:${ros2VideoPort}/stream?topic=/camera/image_raw&type=mjpeg&quality=70`
+})
+
+const activeVideoUrl = computed(() => {
+  return streamMode.value === 'ros2' ? ros2VideoUrl.value : videoUrl.value
 })
 
 const apiBaseUrl = computed(() => {
@@ -508,7 +527,12 @@ const startWebRTC = async () => {
     console.log('Remote description set')
   } catch (error) {
     console.error('WebRTC error:', error)
+    stopWebRTC()
     streamMode.value = 'mjpeg'
+    mockMode.value = false
+    mjpegActive.value = false
+    await nextTick()
+    mjpegActive.value = true
   }
 }
 
@@ -533,31 +557,24 @@ const switchStream = async (mode) => {
     stopWebRTC()
   }
 
-  if (streamMode.value === 'mjpeg') {
+  if (streamMode.value === 'mjpeg' || streamMode.value === 'ros2') {
     mjpegActive.value = false
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 
-  // 切换模式时重置 mockMode，让新的流模式可以正常渲染
-  mockMode.value = false
   streamMode.value = mode
+  mockMode.value = false
   showSettings.value = false
 
-  if (mode === 'mjpeg') {
+  if (mode === 'mjpeg' || mode === 'ros2') {
     mjpegActive.value = true
   } else if (mode === 'webrtc') {
-    // 等待 Vue DOM 更新完成后再启动 WebRTC
     await nextTick()
-    startWebRTC()
+    await startWebRTC()
   }
 }
 
 const checkWebRTCAvailability = async () => {
-  // Mock 模式下跳过 WebRTC 检查
-  if (globalMockMode) {
-    webrtcAvailable.value = false
-    return
-  }
   try {
     const response = await fetch(`${apiBaseUrl.value}/video/webrtc/status`)
     if (response.ok) {
@@ -572,9 +589,13 @@ const checkWebRTCAvailability = async () => {
 const toggleSettings = () => {
   showSettings.value = !showSettings.value
 }
-
 const handleStreamError = () => {
-  console.error('Stream error - enabling mock mode')
+  if (streamMode.value !== 'mjpeg') {
+    console.warn('Selected stream failed; returning to MJPEG')
+    switchStream('mjpeg')
+    return
+  }
+  console.error('MJPEG stream error - enabling mock mode')
   mockMode.value = true
 }
 
@@ -603,10 +624,6 @@ watch(videoRef, (newVideoEl) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  // Mock 模式下启用视频占位符
-  if (globalMockMode) {
-    mockMode.value = true
-  }
   checkWebRTCAvailability()
   fetchMediaCount()
 })

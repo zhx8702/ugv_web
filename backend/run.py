@@ -5,18 +5,22 @@ Quick start script for UGV Rover Backend
 import sys
 import os
 
-# Load .env BEFORE anything else
+# Load .env early so ROS2_ENABLED is available
 from dotenv import load_dotenv
 load_dotenv()
 
 # Monkey patch for eventlet (must be done before any other imports)
-if sys.platform != 'win32':
+# Skip when ROS2 is enabled: eventlet conflicts with Twisted (used by roslibpy)
+_ros2_enabled = os.getenv('ROS2_ENABLED', 'false').lower() == 'true'
+if sys.platform != 'win32' and not _ros2_enabled:
     try:
         import eventlet
         eventlet.monkey_patch()
         print("✓ Eventlet monkey patching applied")
     except ImportError:
         print("⚠ Eventlet not available, falling back to threading mode")
+elif _ros2_enabled:
+    print("ℹ ROS2 enabled — using threading mode (skipping eventlet)")
 
 # Add current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,5 +38,7 @@ if __name__ == '__main__':
         host=app.config['HOST'],
         port=app.config['PORT'],
         debug=app.config['DEBUG'],
-        log_output=True  # Show eventlet server logs
+        use_reloader=False,  # 禁用 reloader，避免父子进程同时打开摄像头
+        log_output=True,
+        allow_unsafe_werkzeug=True
     )

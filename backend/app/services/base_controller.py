@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class ReadLine:
     """串口数据读取类 - 支持传感器和LiDAR"""
 
-    def __init__(self, serial_port):
+    def __init__(self, serial_port, enable_lidar=False):
         self.buf = bytearray()
         self.s = serial_port
 
@@ -40,7 +40,10 @@ class ReadLine:
 
         # 尝试连接外部传感器
         self._init_sensor()
-        self._init_lidar()
+        # The LD19 motor is powered independently of its data UART. Do not
+        # claim its port unless a feature explicitly enables LiDAR.
+        if enable_lidar:
+            self._init_lidar()
 
     def _init_sensor(self):
         """初始化外部传感器串口"""
@@ -209,7 +212,7 @@ class BaseController:
 
             logger.info(f"Initializing UART: {uart_port} @ {baudrate}")
             self.ser = serial.Serial(uart_port, baudrate, timeout=1)
-            self.rl = ReadLine(self.ser)
+            self.rl = ReadLine(self.ser, enable_lidar=self.use_lidar)
 
             # 启动命令处理线程
             self.command_thread = threading.Thread(target=self._process_commands, daemon=True)
@@ -276,6 +279,18 @@ class BaseController:
 
     def send_command(self, data):
         """发送命令到队列"""
+        if isinstance(data, dict) and data.get('T') == 1:
+            # Motion commands supersede prior motion commands. Keeping only the
+            # newest one prevents joystick traffic from becoming stale UART I/O.
+            with self.command_queue.mutex:
+                pending = self.command_queue.queue
+                retained = [
+                    command for command in pending
+                    if not (isinstance(command, dict) and command.get('T') == 1)
+                ]
+                if len(retained) != len(pending):
+                    pending.clear()
+                    pending.extend(retained)
         self.command_queue.put(data)
         logger.debug(f"Command queued: {data} (mock={self.mock_mode})")
 
@@ -284,25 +299,39 @@ class BaseController:
         self.send_command(input_json)
 
     def feedback_data(self):
-        """读取下位机反馈数据"""
+        """Read and merge the latest controller feedback frames."""
         if self.mock_mode or not self.rl:
             return self.base_data
 
         try:
+            frames = []
+            # Wait for one frame when the serial buffer is momentarily empty,
+            # then drain all currently queued frames without discarding any.
+            if self.rl.s.in_waiting == 0:
+                frames.append(self.rl.readline())
             while self.rl.s.in_waiting > 0:
-                self.data_buffer = json.loads(self.rl.readline().decode('utf-8'))
-                if 'T' in self.data_buffer:
-                    self.base_data = self.data_buffer
-                    self.data_buffer = None
-                    if self.base_data["T"] == 1003:
-                        logger.debug(f"Feedback: {self.base_data}")
-                        return self.base_data
-            self.rl.clear_buffer()
-            self.data_buffer = json.loads(self.rl.readline().decode('utf-8'))
-            self.base_data = self.data_buffer
+                frames.append(self.rl.readline())
+
+            for frame in frames:
+                raw = frame.decode('utf-8', errors='ignore').strip()
+                if not raw:
+                    continue
+                try:
+                    feedback = json.loads(raw)
+                except json.JSONDecodeError:
+                    logger.debug("Ignoring non-JSON controller feedback: %r", raw)
+                    continue
+                if not isinstance(feedback, dict) or 'T' not in feedback:
+                    continue
+
+                # Feedback is delivered as several frame types. Keep fields from
+                # earlier frames, especially voltage, when a later status frame
+                # does not include them.
+                if feedback.get('v') in (None, 0):
+                    feedback.pop('v', None)
+                self.base_data.update(feedback)
             return self.base_data
         except Exception as e:
-            self.rl.clear_buffer()
             logger.error(f"Feedback data error: {e}")
             return self.base_data
 

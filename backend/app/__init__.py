@@ -96,6 +96,7 @@ def register_blueprints(app):
     from app.api.ota import ota_bp
     from app.api.lidar import lidar_bp
     from app.api.espnow import espnow_bp
+    from app.api.ros2 import ros2_bp
     from app.api.settings import settings_bp
 
     app.register_blueprint(system_bp, url_prefix='/api/system')
@@ -103,11 +104,12 @@ def register_blueprints(app):
     app.register_blueprint(media_bp, url_prefix='/api/media')
     app.register_blueprint(cv_bp, url_prefix='/api/cv')
     app.register_blueprint(audio_bp, url_prefix='/api/audio')
+    app.register_blueprint(settings_bp)
     app.register_blueprint(video_bp)  # Already has /api/video prefix
     app.register_blueprint(ota_bp)  # Already has /api/ota prefix
     app.register_blueprint(lidar_bp)  # Already has /api/lidar prefix
     app.register_blueprint(espnow_bp)  # Already has /api/espnow prefix
-    app.register_blueprint(settings_bp)  # Already has /api/settings prefix
+    app.register_blueprint(ros2_bp)  # /api/ros2 prefix
 
 
 def register_websocket_handlers():
@@ -123,8 +125,21 @@ def start_background_tasks(app):
     # 初始化 CV 服务
     from app.services.cv_service import init_cv_service, set_socketio
     cv_service = init_cv_service(app.config)
-    set_socketio(socketio)  # 设置 socketio 用于检测通知
+    set_socketio(socketio)
     app.logger.info("CV service initialized")
+
+    # 初始化 ROS2 Bridge (if enabled)
+    if app.config.get('ROS2_ENABLED', False):
+        from app.services.ros2_bridge import init_ros2_bridge
+        bridge = init_ros2_bridge(app.config)
+        if bridge and bridge.connected:
+            app.logger.info(f"ROS2 bridge connected to {app.config['ROS2_BRIDGE_HOST']}:{app.config['ROS2_BRIDGE_PORT']}")
+            # 初始化 FSD 避障服务
+            from app.services.ros2_fsd_service import init_fsd_service
+            init_fsd_service(bridge)
+            app.logger.info("FSD obstacle avoidance service initialized")
+        else:
+            app.logger.warning("ROS2 bridge enabled but not connected (will retry in background)")
 
     # 启动视频流 - 传递 Flask 配置确保路径一致
     from app.services.video_stream import get_video_stream
@@ -140,9 +155,14 @@ def start_background_tasks(app):
     }
     stream = get_video_stream(video_config)
     stream.set_cv_service(cv_service)  # 连接 CV 服务到视频流
-    cv_service.set_video_stream(stream)  # 连接视频流到 CV 服务（用于检测反应拍照/录像）
+    cv_service.set_video_stream(stream)
     stream.start()
     app.logger.info(f"Video stream started, photos_path: {app.config.get('PHOTOS_PATH')}")
+
+    # Read a USB gamepad connected to the Raspberry Pi, if present.
+    if app.config.get('GAMEPAD_ENABLED', True):
+        from app.services.gamepad_service import start_gamepad_service
+        start_gamepad_service(app.config)
 
 
 def register_error_handlers(app):

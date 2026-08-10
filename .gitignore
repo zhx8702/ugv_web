@@ -42,3 +42,20 @@ backend/config/settings.json
 *.zip
 *.tar.gz
 nul
+
+# Runtime / local junk
+backend/media/
+backend/backend/
+*.orig
+*.bak
+frontend/src/src/
+ugv_ws/
+y
+y.pub
+.version
+backend/motor_control.py
+
+# Accidental shell-command filenames
+--format*
+udo *
+ystemctl*

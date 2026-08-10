@@ -51,7 +51,7 @@ export function useWebSocket() {
     // Use current origin if served from same server, otherwise use env variable
     const backendUrl = import.meta.env.VITE_API_URL || window.location.origin
     socket = io(backendUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,

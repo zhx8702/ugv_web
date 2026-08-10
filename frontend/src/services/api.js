@@ -1,83 +1,22 @@
 import axios from 'axios'
 import { useToast } from '@/composables/useToast'
-import * as mock from './mockData'
 
-// ============ Mock 模式检测 ============
-const checkMockMode = () => {
-  if (import.meta.env.VITE_MOCK === 'true') return true
-  if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) return true
-  return false
-}
-export const isMockMode = checkMockMode()
-
-// ============ Mock 数据映射表 ============
-const mockMap = {
-  // 系统
-  'GET /system/status': () => ({ ...mock.systemStatus, timestamp: Date.now() }),
-  'GET /system/stats': mock.systemStats,
-  'POST /system/reboot': { data: mock.successResponse, delay: 500 },
-  'POST /system/restart-service': { data: mock.successResponse, delay: 500 },
-
-  // OTA
-  'GET /ota/version': mock.otaVersion,
-  'GET /ota/check-update': { data: mock.otaCheckUpdate, delay: 800 },
-  'POST /ota/perform-update': { data: mock.successResponse, delay: 2000 },
-
-  // 媒体
-  'GET /media/photos': mock.photos,
-  'GET /media/videos': mock.videos,
-  'DELETE /media/photos': mock.successResponse,
-  'DELETE /media/videos': mock.successResponse,
-  'GET /media/storage': mock.mediaStorage,
-
-  // 设置
-  'GET /settings': mock.settings,
-  'PUT /settings': mock.successResponse,
-  'PUT /settings/preferences': mock.successResponse,
-
-  // 视频
-  'POST /video/capture': { data: mock.successResponse, delay: 300 },
-  'POST /video/recording/start': mock.successResponse,
-  'POST /video/recording/stop': mock.successResponse,
-  'POST /video/zoom': mock.successResponse,
-  'GET /video/status': mock.videoStatus,
-
-  // 控制
-  'POST /command': mock.successResponse,
-  'POST /control/json_command': mock.successResponse,
-  'POST /control/light': mock.successResponse,
-  'GET /control/light/status': { base: false, head: 'off' },
-  'POST /control/motor/lock': mock.successResponse,
-  'POST /control/motor/unlock': mock.successResponse,
-  'POST /control/servo/id': mock.successResponse,
-  'POST /control/servo/torque': mock.successResponse,
-  'POST /control/servo/mid': mock.successResponse,
-  'POST /control/servo/release': mock.successResponse,
-
-  // CV
-  'GET /cv/status': mock.cvStatus,
-  'POST /cv/mode': mock.successResponse,
-  'POST /cv/motion-lock': mock.successResponse,
-
-  // 音频
-  'GET /audio/files': mock.audioFiles,
-  'POST /audio/play': mock.successResponse,
-  'POST /audio/play-random': mock.successResponse,
-  'POST /audio/speak': mock.successResponse,
-  'POST /audio/stop': mock.successResponse,
-  'GET /audio/volume': { volume: 0.5 },
-  'POST /audio/volume': mock.successResponse,
-  'GET /audio/status': mock.audioStatus
-}
-
-// ============ Axios 实例 ============
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || window.location.origin}/api`,
   timeout: 10000
 })
 
-api.interceptors.request.use(config => config, error => Promise.reject(error))
+// 请求拦截器
+api.interceptors.request.use(
+  config => {
+    return config
+  },
+  error => {
+    return Promise.reject(error)
+  }
+)
 
+// 响应拦截器
 api.interceptors.response.use(
   response => response.data,
   error => {
@@ -87,94 +26,109 @@ api.interceptors.response.use(
   }
 )
 
-// ============ 统一请求函数 ============
-const request = (method, url, data, config) => {
-  if (isMockMode) {
-    // 尝试精确匹配，然后尝试路径前缀匹配（用于带参数的路径如 /media/photos/123）
-    const key = `${method.toUpperCase()} ${url}`
-    let mockConfig = mockMap[key]
+// 系统相关API
+export const getSystemStatus = () => api.get('/system/status')
+export const getSystemStats = () => api.get('/system/stats')
+export const restartService = () => api.post('/system/restart-service')
 
-    // 如果没有精确匹配，尝试前缀匹配
-    if (!mockConfig) {
-      const baseUrl = url.replace(/\/[^/]+$/, '') // 移除最后一段路径
-      mockConfig = mockMap[`${method.toUpperCase()} ${baseUrl}`]
-    }
+// 媒体相关API
+export const getPhotos = () => api.get('/media/photos')
+export const getVideos = () => api.get('/media/videos')
+export const deletePhoto = (id) => api.delete(`/media/photos/${id}`)
+export const deleteVideo = (id) => api.delete(`/media/videos/${id}`)
+export const getMediaStats = () => api.get('/media/storage')
 
-    if (mockConfig) {
-      const { data: mockData, delay = 100 } = mockConfig.data !== undefined ? mockConfig : { data: mockConfig }
-      const result = typeof mockData === 'function' ? mockData(data) : mockData
-      return mock.mockDelay(result, delay)
-    }
-  }
+// 设置相关API
+export const getSettings = () => api.get('/settings')
+export const updateSettings = (settings) => api.put('/settings', settings)
+export const updatePreferences = (preferences) => api.put('/settings/preferences', preferences)
+export const rebootSystem = () => api.post('/system/reboot')
 
-  const axiosConfig = { method, url, ...config }
-  if (data && ['post', 'put', 'patch'].includes(method)) {
-    axiosConfig.data = data
-  }
-  return api.request(axiosConfig)
+// 视频相关API
+export const capturePhoto = () => api.post('/video/capture')
+export const startRecording = () => api.post('/video/recording/start')
+export const stopRecording = () => api.post('/video/recording/stop')
+export const setVideoZoom = (rate) => api.post('/video/zoom', { rate })
+export const getVideoStatus = () => api.get('/video/status')
+
+// OTA related APIs
+export const getVersion = () => api.get('/ota/version')
+export const checkUpdate = () => api.get('/ota/check-update')
+export const doUpdate = () => api.post('/ota/perform-update')
+
+// 命令发送（通过WebSocket更合适，这里作为备用）
+export const sendCommand = (code, val1 = 0, val2 = 0) => {
+  return api.post('/command', { code, val1, val2 })
 }
 
-// ============ 系统相关 API ============
-export const getSystemStatus = () => request('get', '/system/status')
-export const getSystemStats = () => request('get', '/system/stats')
-export const rebootSystem = () => request('post', '/system/reboot')
-export const restartService = () => request('post', '/system/restart-service')
+export const sendJsonCommand = (command) => {
+  return api.post('/control/json_command', command)
+}
 
-// ============ OTA 更新相关 API ============
-export const getVersion = () => request('get', '/ota/version')
-export const checkUpdate = () => request('get', '/ota/check-update')
-export const doUpdate = () => request('post', '/ota/perform-update', {}, { timeout: 120000 })
+// 灯光控制API
+export const setLights = (base, head) => api.post('/control/light', { base, head })
+export const getLightStatus = () => api.get('/control/light/status')
 
-// ============ 媒体相关 API ============
-export const getPhotos = () => request('get', '/media/photos')
-export const getVideos = () => request('get', '/media/videos')
-export const deletePhoto = (id) => request('delete', `/media/photos/${id}`)
-export const deleteVideo = (id) => request('delete', `/media/videos/${id}`)
-export const getMediaStats = () => request('get', '/media/storage')
+// 电机锁定API
+export const lockMotor = () => api.post('/control/motor/lock')
+export const unlockMotor = () => api.post('/control/motor/unlock')
 
-// ============ 设置相关 API ============
-export const getSettings = () => request('get', '/settings')
-export const updateSettings = (settings) => request('put', '/settings', settings)
-export const updatePreferences = (preferences) => request('put', '/settings/preferences', preferences)
+// 舵机配置API
+export const setServoId = (oldId, newId) => api.post('/control/servo/id', { old_id: oldId, new_id: newId })
+export const setServoTorque = (id, lock) => api.post('/control/servo/torque', { id, lock })
+export const setServoMid = (id) => api.post('/control/servo/mid', { id })
+export const releaseServo = (id) => api.post('/control/servo/release', id ? { id } : {})
 
-// ============ 视频相关 API ============
-export const capturePhoto = () => request('post', '/video/capture')
-export const startRecording = () => request('post', '/video/recording/start')
-export const stopRecording = () => request('post', '/video/recording/stop')
-export const setVideoZoom = (rate) => request('post', '/video/zoom', { rate })
-export const getVideoStatus = () => request('get', '/video/status')
+// CV检测相关API
+export const getCVStatus = () => api.get('/cv/status')
+export const setCVMode = (mode) => api.post('/cv/mode', { mode })
+export const setCVMotionLock = (locked) => api.post('/cv/motion-lock', { locked })
 
-// ============ 命令发送 ============
-export const sendCommand = (code, val1 = 0, val2 = 0) => request('post', '/command', { code, val1, val2 })
-export const sendJsonCommand = (command) => request('post', '/control/json_command', command)
+// 语音相关API
+export const getAudioFiles = (category) => {
+  const params = category ? { category } : {}
+  return api.get('/audio/files', { params })
+}
 
-// ============ 灯光控制 API ============
-export const setLights = (base, head) => request('post', '/control/light', { base, head })
-export const getLightStatus = () => request('get', '/control/light/status')
+export const playAudioFile = (file) => api.post('/audio/play', { file })
 
-// ============ 电机锁定 API ============
-export const lockMotor = () => request('post', '/control/motor/lock')
-export const unlockMotor = () => request('post', '/control/motor/unlock')
+export const playRandomAudio = (category, force = false) => {
+  return api.post('/audio/play-random', { category, force })
+}
 
-// ============ 舵机配置 API ============
-export const setServoId = (oldId, newId) => request('post', '/control/servo/id', { old_id: oldId, new_id: newId })
-export const setServoTorque = (id, lock) => request('post', '/control/servo/torque', { id, lock })
-export const setServoMid = (id) => request('post', '/control/servo/mid', { id })
-export const releaseServo = (id) => request('post', '/control/servo/release', id ? { id } : {})
+export const speakText = (text) => api.post('/audio/speak', { text })
 
-// ============ CV 检测相关 API ============
-export const getCVStatus = () => request('get', '/cv/status')
-export const setCVMode = (mode) => request('post', '/cv/mode', { mode })
-export const setCVMotionLock = (locked) => request('post', '/cv/motion-lock', { locked })
+export const stopAudio = () => api.post('/audio/stop')
 
-// ============ 语音相关 API ============
-export const getAudioFiles = (category) => request('get', '/audio/files', null, { params: category ? { category } : {} })
-export const playAudioFile = (file) => request('post', '/audio/play', { file })
-export const playRandomAudio = (category, force = false) => request('post', '/audio/play-random', { category, force })
-export const speakText = (text) => request('post', '/audio/speak', { text })
-export const stopAudio = () => request('post', '/audio/stop')
-export const getAudioVolume = () => request('get', '/audio/volume')
-export const setAudioVolume = (volume) => request('post', '/audio/volume', { volume })
-export const getAudioStatus = () => request('get', '/audio/status')
+export const getAudioVolume = () => api.get('/audio/volume')
+
+export const setAudioVolume = (volume) => api.post('/audio/volume', { volume })
+
+export const getAudioStatus = () => api.get('/audio/status')
+
+// ROS2相关API
+export const getROS2Status = () => api.get('/ros2/status')
+export const reconnectROS2 = () => api.post('/ros2/reconnect')
+export const getROS2Topics = () => api.get('/ros2/topics')
+
+// SLAM 相关API
+export const startSlamMapping = (algorithm = 'cartographer') => api.post('/ros2/slam/start', { algorithm })
+export const stopSlamMapping = () => api.post('/ros2/slam/stop')
+export const saveSlamMap = (mapName = 'my_map') => api.post('/ros2/slam/save', { map_name: mapName })
+
+// Navigation 相关API
+export const startNav2Service = (algorithm = 'teb') => api.post('/ros2/nav/start', { algorithm })
+export const stopNav2Service = () => api.post('/ros2/nav/stop')
+export const cancelNav2Navigation = () => api.post('/ros2/nav/cancel')
+export const navigateToGoal = (x, y, theta = 0) => api.post('/ros2/nav/goto', { x, y, theta })
+export const getNavWaypoints = () => api.get('/ros2/nav/points')
+export const saveNavWaypoint = (points) => api.post('/ros2/nav/points', { points })
+
+// Vision Tracking 相关API
+export const startVisionTracking = (mode = 'simple', targetId = 0) => api.post('/ros2/vision/start', { mode, target_id: targetId })
+export const stopVisionTracking = () => api.post('/ros2/vision/stop')
+
+// Behavior 相关API
+export const sendBehaviorAction = (action) => api.post('/ros2/behavior', { action })
 
 export default api

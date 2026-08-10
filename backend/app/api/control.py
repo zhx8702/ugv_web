@@ -61,6 +61,15 @@ def send_json_command():
         return jsonify({'error': str(e)}), 500
 
 
+
+@control_bp.route('/feedback', methods=['GET'])
+def get_hardware_feedback():
+    """Return the latest cached feedback without reading the UART again."""
+    base = controller.base_controller
+    feedback = base.base_data.copy() if base else {}
+    voltage_cv = feedback.get('v')
+    voltage = voltage_cv / 100 if isinstance(voltage_cv, (int, float)) and voltage_cv > 0 else None
+    return jsonify({'success': True, 'feedback': feedback, 'voltage': voltage}), 200
 @control_bp.route('/move', methods=['POST'])
 def move_robot():
     """

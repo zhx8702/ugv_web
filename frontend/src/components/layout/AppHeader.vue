@@ -134,6 +134,26 @@
           <span class="nav-label">VIDEOS</span>
         </router-link>
 
+        <router-link to="/slam" class="nav-item" :class="{ active: $route.path === '/slam' }">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </div>
+          <span class="nav-label">SLAM</span>
+        </router-link>
+
+        <router-link to="/tracking" class="nav-item" :class="{ active: $route.path === '/tracking' }">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </div>
+          <span class="nav-label">TRACK</span>
+        </router-link>
+
         <router-link to="/settings" class="nav-item" :class="{ active: $route.path === '/settings' }">
           <div class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -204,6 +204,9 @@ const quickCommands = [
   { label: '拍照', text: '拍一张照片' },
   { label: '看左边', text: '把摄像头转向左边' },
   { label: '看右边', text: '把摄像头转向右边' },
+  { label: '导航A', text: '导航到航点A' },
+  { label: '跟踪', text: '开始跟踪标签' },
+  { label: '回家', text: '返回起点' },
 ]
 
 // 发送消息

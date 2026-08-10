@@ -38,6 +38,18 @@ const routes = [
     meta: { title: 'Video Library' }
   },
   {
+    path: '/slam',
+    name: 'Slam',
+    component: () => import('@/views/Slam.vue'),
+    meta: { title: 'SLAM Mapping' }
+  },
+  {
+    path: '/tracking',
+    name: 'Tracking',
+    component: () => import('@/views/Tracking.vue'),
+    meta: { title: 'Vision Tracking' }
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: () => import('@/views/Settings.vue'),
@@ -46,7 +58,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes
 })
 

@@ -30,6 +30,13 @@ class Config:
     USE_LIDAR = os.getenv('USE_LIDAR', 'false').lower() == 'true'
     EXTRA_SENSOR = os.getenv('EXTRA_SENSOR', 'false').lower() == 'true'
 
+    # Locally connected USB gamepad
+    GAMEPAD_ENABLED = os.getenv('GAMEPAD_ENABLED', 'true').lower() == 'true'
+    GAMEPAD_DEVICE = os.getenv('GAMEPAD_DEVICE', '/dev/input/js0')
+    GAMEPAD_DEADZONE = float(os.getenv('GAMEPAD_DEADZONE', 0.12))
+    GAMEPAD_MAX_SPEED = float(os.getenv('GAMEPAD_MAX_SPEED', 1.3))
+    GAMEPAD_GIMBAL_SPEED = float(os.getenv('GAMEPAD_GIMBAL_SPEED', 45.0))
+
     # Legacy compatibility
     SERIAL_PORT = os.getenv('SERIAL_PORT', '/dev/serial0')
     SERIAL_BAUDRATE = int(os.getenv('SERIAL_BAUDRATE', 115200))
@@ -64,13 +71,21 @@ class Config:
     AUDIO_TTS_RATE = int(os.getenv('AUDIO_TTS_RATE', 150))
     AUDIO_MIN_TIME_BETWEEN = float(os.getenv('AUDIO_MIN_TIME_BETWEEN', 0.5))
 
+    # ROS2 Bridge
+    ROS2_ENABLED = os.getenv('ROS2_ENABLED', 'false').lower() == 'true'
+    ROS2_BRIDGE_HOST = os.getenv('ROS2_BRIDGE_HOST', 'localhost')
+    ROS2_BRIDGE_PORT = int(os.getenv('ROS2_BRIDGE_PORT', 5001))
+    ROS2_WHEEL_SEPARATION = float(os.getenv('ROS2_WHEEL_SEPARATION', 0.172))
+    ROS2_VIDEO_PORT = int(os.getenv('ROS2_VIDEO_PORT', 8080))
+    ROS2_VIDEO_TOPIC = os.getenv('ROS2_VIDEO_TOPIC', '/camera/image_raw')
+
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
     LOG_FILE = os.getenv('LOG_FILE', os.path.join(BASE_DIR, 'logs', 'app.log'))
 
     # SocketIO
-    # Use threading on Windows (gevent blocks Ctrl+C), eventlet on Linux/Mac
-    SOCKETIO_ASYNC_MODE = 'threading' if sys.platform == 'win32' else 'eventlet'
+    # Use threading on Windows or when ROS2 is enabled (eventlet conflicts with Twisted/roslibpy)
+    SOCKETIO_ASYNC_MODE = 'threading' if sys.platform == 'win32' or os.getenv('ROS2_ENABLED', 'false').lower() == 'true' else 'eventlet'
     SOCKETIO_CORS_ALLOWED_ORIGINS = '*'  # Allow all origins for WebSocket
     SOCKETIO_PING_TIMEOUT = 60
     SOCKETIO_PING_INTERVAL = 25

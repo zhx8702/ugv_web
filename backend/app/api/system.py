@@ -24,7 +24,13 @@ def get_status():
     }
     """
     try:
-        status = monitor.get_current_status()
+        from app.services.base_controller import get_base_controller
+        from app.websocket.handlers import monitor as websocket_monitor
+        feedback = get_base_controller().feedback_data()
+        voltage_cv = feedback.get('v') if feedback else 0
+        if isinstance(voltage_cv, (int, float)) and voltage_cv > 0:
+            websocket_monitor.update_voltage(voltage_cv / 100)
+        status = websocket_monitor.get_current_status()
         return jsonify(status), 200
     except Exception as e:
         current_app.logger.error(f"Error getting system status: {e}")
