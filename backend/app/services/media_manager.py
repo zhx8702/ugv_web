@@ -178,8 +178,8 @@ class MediaManager:
                 'free': free,
                 'photos_size': photos_size,
                 'videos_size': videos_size,
-                'photos_count': len(self.get_photos()),
-                'videos_count': len(self.get_videos())
+                'photos_count': self._count_files(self.photos_path, ('.jpg', '.jpeg', '.png')),
+                'videos_count': self._count_files(self.videos_path, ('.mp4', '.avi', '.h264'))
             }
 
         except Exception as e:
@@ -193,6 +193,18 @@ class MediaManager:
                 'photos_count': 0,
                 'videos_count': 0
             }
+
+    def _count_files(self, directory, suffixes):
+        count = 0
+        try:
+            if not os.path.isdir(directory):
+                return 0
+            for filename in os.listdir(directory):
+                if filename.lower().endswith(suffixes):
+                    count += 1
+        except Exception as e:
+            logging.error(f'Error counting files in {directory}: {e}')
+        return count
 
     def _get_directory_size(self, directory):
         """Calculate total size of files in directory"""

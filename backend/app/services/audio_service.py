@@ -97,7 +97,7 @@ class AudioService:
                 tried.append('edge')
         if pref in ('auto', '', 'espeak') or (pref == 'edge' and not tried):
             if self._init_espeak():
-                tried.append('espeak')
+                tried.append(os.path.basename(self._espeak_bin))
         if not tried and pref in ('auto', '', 'pyttsx3'):
             if self._init_pyttsx3():
                 tried.append('pyttsx3')
@@ -168,6 +168,14 @@ class AudioService:
     @staticmethod
     def _contains_cjk(text: str) -> bool:
         return bool(re.search(r'[\u4e00-\u9fff]', text or ''))
+
+    def _espeak_voice(self, text: str) -> str:
+        if not self._contains_cjk(text):
+            return 'en'
+        binary = os.path.basename(self._espeak_bin or '')
+        if 'ng' in binary:
+            return 'cmn'
+        return 'zh'
 
     def _resolve_audio_path(self, filepath) -> Path:
         """Resolve a relative or absolute audio path without doubling audio_path."""
@@ -362,7 +370,7 @@ class AudioService:
     def _espeak_to_wav(self, text: str):
         fd, wav_path = tempfile.mkstemp(prefix='ugv-tts-', suffix='.wav')
         os.close(fd)
-        voice = 'zh' if self._contains_cjk(text) else 'en'
+        voice = self._espeak_voice(text)
         cmd = [
             self._espeak_bin,
             '-v', voice,

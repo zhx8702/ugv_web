@@ -30,3 +30,10 @@ def test_speak_in_mock_mode_succeeds():
 def test_contains_cjk():
     assert AudioService._contains_cjk('你好')
     assert not AudioService._contains_cjk('hello')
+
+
+def test_espeak_ng_uses_cmn_for_chinese():
+    svc = AudioService({'mock_mode': True, 'audio_path': './sounds'})
+    svc._espeak_bin = '/usr/bin/espeak-ng'
+    assert svc._espeak_voice('你好') == 'cmn'
+    assert svc._espeak_voice('hello') == 'en'
