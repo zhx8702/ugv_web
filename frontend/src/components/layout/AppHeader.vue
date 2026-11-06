@@ -134,7 +134,7 @@
           <span class="nav-label">VIDEOS</span>
         </router-link>
 
-        <router-link to="/slam" class="nav-item" :class="{ active: $route.path === '/slam' }">
+        <router-link v-if="ros2Enabled" to="/slam" class="nav-item" :class="{ active: $route.path === '/slam' }">
           <div class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -144,7 +144,7 @@
           <span class="nav-label">SLAM</span>
         </router-link>
 
-        <router-link to="/tracking" class="nav-item" :class="{ active: $route.path === '/tracking' }">
+        <router-link v-if="ros2Enabled" to="/tracking" class="nav-item" :class="{ active: $route.path === '/tracking' }">
           <div class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
@@ -176,10 +176,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSystemStore } from '@/stores/system'
+import { useROS2Store } from '@/stores/ros2'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { logout } from '@/services/api'
 
@@ -195,8 +196,14 @@ async function doLogout() {
 }
 
 const systemStore = useSystemStore()
+const ros2Store = useROS2Store()
 const { voltage, temperature, rssi, systemStatus, batteryStatus } = storeToRefs(systemStore)
 const { connected } = useWebSocket()
+const ros2Enabled = computed(() => ros2Store.enabled)
+
+onMounted(() => {
+  ros2Store.fetchStatus()
+})
 
 const batteryWidth = computed(() => {
   const minV = 6.0

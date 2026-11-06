@@ -36,8 +36,8 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">ROS2 CONNECTION</span>
-            <span :class="['panel-badge', ros2Store.connected ? 'badge-ok' : 'badge-err']">
-              {{ ros2Store.connected ? 'ONLINE' : 'OFFLINE' }}
+            <span :class="['panel-badge', ros2BadgeClass]">
+              {{ ros2BadgeText }}
             </span>
           </div>
           <div class="panel-content">
@@ -230,12 +230,24 @@ const algorithms = [
 
 // Computed
 const slamStatusText = computed(() => {
-  if (!ros2Store.connected) return 'NO ROS2'
+  if (!ros2Store.enabled) return 'ROS2 OFF'
+  if (!ros2Store.connected) return 'NO BRIDGE'
   if (slamRunning.value) return 'MAPPING'
   return 'IDLE'
 })
 
+const ros2BadgeText = computed(() => {
+  if (!ros2Store.enabled) return 'DISABLED'
+  return ros2Store.connected ? 'ONLINE' : 'OFFLINE'
+})
+
+const ros2BadgeClass = computed(() => {
+  if (!ros2Store.enabled) return 'badge-off'
+  return ros2Store.connected ? 'badge-ok' : 'badge-err'
+})
+
 const statusClass = computed(() => {
+  if (!ros2Store.enabled) return 'status-idle'
   if (!ros2Store.connected) return 'status-offline'
   if (slamRunning.value) return 'status-active'
   return 'status-idle'
@@ -437,6 +449,11 @@ onUnmounted(() => {
 .badge-err {
   @apply text-danger bg-danger/10;
   border-color: rgba(255, 0, 64, 0.3);
+}
+
+.badge-off {
+  @apply text-dark-text-tertiary bg-dark-bg-tertiary/40;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .badge-warn {

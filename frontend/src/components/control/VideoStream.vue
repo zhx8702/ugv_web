@@ -293,6 +293,7 @@
                 WEBRTC {{ !webrtcAvailable ? '(N/A)' : '' }}
               </button>
               <button
+                v-if="ros2Store.enabled"
                 @click="switchStream('ros2')"
                 :class="['dropdown-item', streamMode === 'ros2' ? 'active' : '', !ros2Store.connected ? 'disabled' : '']"
                 :disabled="!ros2Store.connected"
@@ -626,6 +627,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   checkWebRTCAvailability()
   fetchMediaCount()
+  ros2Store.fetchStatus()
 })
 
 onUnmounted(() => {

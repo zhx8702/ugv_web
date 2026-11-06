@@ -48,6 +48,9 @@ class MotorController:
 
     def _init_ros2(self):
         """Try to create the ROS2 motor controller."""
+        import os
+        if os.getenv('ROS2_ENABLED', 'false').lower() != 'true':
+            return
         try:
             from .ros2_bridge import get_ros2_bridge
             bridge = get_ros2_bridge()

@@ -36,7 +36,7 @@
               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <p class="text-dark-text-tertiary text-sm mt-2">Connect to ROS2 for camera feed</p>
+            <p class="text-dark-text-tertiary text-sm mt-2">{{ ros2Store.enabled ? 'Waiting for ROS2 camera' : 'ROS2 is turned off; use the dashboard camera' }}</p>
           </div>
 
           <!-- Detection overlay info -->
@@ -215,12 +215,14 @@ const videoUrl = computed(() => {
 })
 
 const trackingStatusText = computed(() => {
-  if (!ros2Store.connected) return 'NO ROS2'
+  if (!ros2Store.enabled) return 'ROS2 OFF'
+  if (!ros2Store.connected) return 'NO BRIDGE'
   if (trackingActive.value) return 'TRACKING'
   return 'IDLE'
 })
 
 const statusClass = computed(() => {
+  if (!ros2Store.enabled) return 'status-idle'
   if (!ros2Store.connected) return 'status-offline'
   if (trackingActive.value) return 'status-active'
   return 'status-idle'

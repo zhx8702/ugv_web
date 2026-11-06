@@ -12,8 +12,18 @@ logger = logging.getLogger(__name__)
 ros2_bp = Blueprint('ros2', __name__, url_prefix='/api/ros2')
 
 
+def _ros2_enabled():
+    try:
+        from flask import current_app
+        return bool(current_app.config.get('ROS2_ENABLED'))
+    except Exception:
+        return False
+
+
 def _get_bridge():
-    """Get the ROS2 bridge singleton (may be None if disabled)."""
+    """Get the ROS2 bridge singleton (None when ROS2 is turned off)."""
+    if not _ros2_enabled():
+        return None
     try:
         from app.services.ros2_bridge import get_ros2_bridge
         return get_ros2_bridge()
@@ -113,10 +123,18 @@ def bringup_status():
 @ros2_bp.route('/status', methods=['GET'])
 def get_status():
     """Return ROS2 bridge connection status."""
+    if not _ros2_enabled():
+        return jsonify({
+            'enabled': False,
+            'connected': False,
+            'host': '',
+            'port': 0,
+            'message': 'ROS2 disabled',
+        })
     bridge = _get_bridge()
     if bridge is None:
         return jsonify({
-            'enabled': False,
+            'enabled': True,
             'connected': False,
             'message': 'ROS2 bridge not initialized',
         })
