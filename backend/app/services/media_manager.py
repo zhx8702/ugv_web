@@ -102,14 +102,16 @@ class MediaManager:
                     filepath = os.path.join(self.videos_path, filename)
                     stat = os.stat(filepath)
 
+                    meta = self._probe_video(filepath)
                     videos.append({
                         'id': filename,
                         'name': filename,
                         'size': stat.st_size,
-                        'duration': self._get_video_duration(filepath),
+                        'duration': meta['duration'],
+                        'resolution': meta['resolution'],
                         'created': time.ctime(stat.st_ctime),
                         'url': f'/api/media/videos/{filename}',
-                        'thumbnail': None  # TODO: Generate video thumbnail
+                        'thumbnail': meta['thumbnail']
                     })
 
             # Sort by creation time (newest first)
@@ -139,6 +141,9 @@ class MediaManager:
                 raise FileNotFoundError(f'Video not found: {video_id}')
 
             os.remove(filepath)
+            thumb = self._thumb_path(filepath)
+            if os.path.exists(thumb):
+                os.remove(thumb)
             logging.info(f'Video deleted: {video_id}')
 
             return {'deleted': video_id}
@@ -202,28 +207,77 @@ class MediaManager:
             logging.error(f'Error calculating directory size: {e}')
         return total_size
 
-    def _get_video_duration(self, filepath):
-        """
-        Get video duration in seconds using OpenCV
+    def _thumb_dir(self):
+        path = os.path.join(self.videos_path, '.thumbs')
+        os.makedirs(path, exist_ok=True)
+        return path
 
-        Args:
-            filepath: Path to video file
+    def _thumb_path(self, filepath):
+        name = Path(filepath).stem + '.jpg'
+        return os.path.join(self._thumb_dir(), name)
 
-        Returns:
-            float: Duration in seconds, 0 if unable to determine
-        """
+    def thumbnail_file(self, video_id):
+        """Return cached thumbnail path, generating it if needed."""
+        self._get_paths()
+        filepath = os.path.join(self.videos_path, video_id)
+        if not os.path.isfile(filepath):
+            return None
+        self._ensure_thumbnail(filepath)
+        thumb = self._thumb_path(filepath)
+        return thumb if os.path.isfile(thumb) else None
+
+    def _ensure_thumbnail(self, filepath):
+        thumb = self._thumb_path(filepath)
+        if os.path.isfile(thumb) and os.path.getmtime(thumb) >= os.path.getmtime(filepath):
+            return thumb
         try:
             cap = cv2.VideoCapture(filepath)
             if not cap.isOpened():
-                return 0
-
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+                return None
+            frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+            target = 30 if frame_count <= 0 else min(int(frame_count * 0.1), int(frame_count) - 1)
+            if target > 0:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, max(target, 0))
+            ok, frame = cap.read()
+            if not ok:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                ok, frame = cap.read()
             cap.release()
-
-            if fps > 0 and frame_count > 0:
-                return round(frame_count / fps, 1)
-            return 0
+            if not ok or frame is None:
+                return None
+            height, width = frame.shape[:2]
+            if width > 320:
+                scale = 320 / float(width)
+                frame = cv2.resize(frame, (320, max(1, int(height * scale))))
+            cv2.imwrite(thumb, frame, [int(cv2.IMWRITE_JPEG_QUALITY), 72])
+            return thumb
         except Exception as e:
-            logging.error(f'Error getting video duration: {e}')
-            return 0
+            logging.error(f'Error generating thumbnail for {filepath}: {e}')
+            return None
+
+    def _probe_video(self, filepath):
+        duration = 0
+        resolution = ''
+        try:
+            cap = cv2.VideoCapture(filepath)
+            if cap.isOpened():
+                fps = cap.get(cv2.CAP_PROP_FPS) or 0
+                frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+                cap.release()
+                if fps > 0 and frame_count > 0:
+                    duration = round(frame_count / fps, 1)
+                if width and height:
+                    resolution = f'{width}x{height}'
+        except Exception as e:
+            logging.error(f'Error probing video {filepath}: {e}')
+        self._ensure_thumbnail(filepath)
+        thumb_url = None
+        if os.path.isfile(self._thumb_path(filepath)):
+            thumb_url = f'/api/media/videos/{os.path.basename(filepath)}/thumbnail'
+        return {
+            'duration': duration,
+            'resolution': resolution,
+            'thumbnail': thumb_url
+        }

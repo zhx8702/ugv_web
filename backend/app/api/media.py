@@ -77,11 +77,28 @@ def get_videos():
 def get_video(video_id):
     """Serve video file"""
     try:
+        if '/' in video_id or '\\' in video_id:
+            return jsonify({'error': 'Invalid id'}), 400
         videos_path = current_app.config['VIDEOS_PATH']
         return send_from_directory(videos_path, video_id)
     except Exception as e:
         current_app.logger.error(f"Error serving video: {e}")
         return jsonify({'error': 'Video not found'}), 404
+
+
+@media_bp.route('/videos/<video_id>/thumbnail', methods=['GET'])
+def get_video_thumbnail(video_id):
+    """Serve a JPEG poster frame for a video."""
+    try:
+        if '/' in video_id or '\\' in video_id:
+            return jsonify({'error': 'Invalid id'}), 400
+        thumb = manager.thumbnail_file(video_id)
+        if not thumb:
+            return jsonify({'error': 'Thumbnail not found'}), 404
+        return send_from_directory(os.path.dirname(thumb), os.path.basename(thumb))
+    except Exception as e:
+        current_app.logger.error(f"Error serving thumbnail: {e}")
+        return jsonify({'error': 'Thumbnail not found'}), 404
 
 
 @media_bp.route('/videos/<video_id>', methods=['DELETE'])

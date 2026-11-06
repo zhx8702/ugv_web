@@ -268,7 +268,7 @@ class ESPNowService:
             'name': self.local_name,
             'role': self.role.value,
             'timestamp': time.time(),
-            'battery': 11.4,  # TODO: Get real battery voltage
+            'battery': self._current_battery(),
             'status': 'idle'
         }
 
@@ -411,12 +411,35 @@ class ESPNowService:
             self.leader_mac = sender_mac
             logger.info(f"Following leader: {sender_mac}")
 
-        # 执行命令
         command = message.get('command', {})
         logger.info(f"Received command from leader: {command}")
+        self._execute_leader_command(command)
 
-        # TODO: 执行具体的控制命令
-        # 这里需要集成base_controller来执行实际的运动控制
+    def _current_battery(self):
+        """Read chassis voltage in volts, or 0 when unknown."""
+        try:
+            from app.services.base_controller import get_base_controller
+            feedback = get_base_controller().feedback_data()
+            raw = feedback.get('v') if feedback else 0
+            if isinstance(raw, (int, float)) and raw > 0:
+                return round(raw / 100.0, 2)
+        except Exception as e:
+            logger.debug(f"Battery read failed: {e}")
+        return 0
+
+    def _execute_leader_command(self, command):
+        if not isinstance(command, dict):
+            logger.warning("Leader command is not an object")
+            return
+        cmd_type = command.get('T')
+        if not isinstance(cmd_type, int) or cmd_type < 0 or cmd_type > 600:
+            logger.warning(f"Rejected leader command type: {cmd_type}")
+            return
+        try:
+            from app.services.base_controller import get_base_controller
+            get_base_controller().base_json_ctrl(command)
+        except Exception as e:
+            logger.error(f"Failed to execute leader command: {e}")
 
     def set_formation(self, formation_type: str, spacing: float = 1.0) -> bool:
         """设置编队类型"""

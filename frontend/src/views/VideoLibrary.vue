@@ -80,7 +80,8 @@
         </div>
 
         <div class="video-thumbnail">
-          <video :src="video.url" preload="metadata" muted></video>
+          <img v-if="video.thumbnail" :src="video.thumbnail" alt="" class="thumb-img" />
+          <video v-else :src="video.url" preload="metadata" muted></video>
           <div class="thumbnail-overlay">
             <button class="play-btn" @click="playVideo(video)">
               <svg viewBox="0 0 24 24" fill="currentColor">
@@ -508,13 +509,15 @@ async function toggleRecording() {
   background: var(--dark-bg);
 }
 
-.video-thumbnail video {
+.video-thumbnail video,
+.video-thumbnail .thumb-img {
   @apply w-full h-full object-cover;
   filter: saturate(0.8);
   transition: all 0.3s ease;
 }
 
-.video-card:hover .video-thumbnail video {
+.video-card:hover .video-thumbnail video,
+.video-card:hover .video-thumbnail .thumb-img {
   filter: saturate(1);
   transform: scale(1.05);
 }
