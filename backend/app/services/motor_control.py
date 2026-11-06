@@ -62,7 +62,10 @@ class MotorController:
 
     @property
     def _use_ros2(self):
-        """Return True if we should route through ROS2."""
+        """Drive via /cmd_vel only when ROS2_DRIVE is on and the bridge is up."""
+        import os
+        if os.getenv('ROS2_DRIVE', 'false').lower() != 'true':
+            return False
         return (
             self._ros2_controller is not None
             and self._ros2_controller.bridge.connected

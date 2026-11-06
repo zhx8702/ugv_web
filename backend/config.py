@@ -85,6 +85,8 @@ class Config:
 
     # ROS2 Bridge
     ROS2_ENABLED = os.getenv('ROS2_ENABLED', 'false').lower() == 'true'
+    # When true, joystick/motion goes to /cmd_vel. Keep false while UART still owns the chassis.
+    ROS2_DRIVE = os.getenv('ROS2_DRIVE', 'false').lower() == 'true'
     ROS2_BRIDGE_HOST = os.getenv('ROS2_BRIDGE_HOST', 'localhost')
     ROS2_BRIDGE_PORT = int(os.getenv('ROS2_BRIDGE_PORT', 5001))
     ROS2_WHEEL_SEPARATION = float(os.getenv('ROS2_WHEEL_SEPARATION', 0.172))

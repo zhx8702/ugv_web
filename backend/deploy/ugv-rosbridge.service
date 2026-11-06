@@ -1,0 +1,13 @@
+[Unit]
+Description=UGV rosbridge (ROS2 websocket on :5001)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'docker start ugv_rpi_ros_humble && sleep 2 && docker exec ugv_rpi_ros_humble bash -lc "pgrep -f rosbridge_websocket >/dev/null || (source /opt/ros/humble/setup.bash && ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=5001 address:=0.0.0.0)"'
+ExecStop=/bin/bash -c 'docker exec ugv_rpi_ros_humble bash -lc "pkill -f rosbridge_websocket || true" || true'
+
+[Install]
+WantedBy=multi-user.target
