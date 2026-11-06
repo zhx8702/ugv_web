@@ -283,7 +283,7 @@ def init_ros2_bridge(app_config):
         return None
 
     if not HAS_ROSLIBPY:
-        logger.error("ROS2 bridge enabled but roslibpy not installed")
+        logger.warning("ROS2_ENABLED is set but roslibpy is not installed; skipping ROS2 bridge")
         return None
 
     host = app_config.get('ROS2_BRIDGE_HOST', 'localhost')

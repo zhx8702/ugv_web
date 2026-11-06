@@ -144,11 +144,10 @@ def start_background_tasks(app):
         bridge = init_ros2_bridge(app.config)
         if bridge and bridge.connected:
             app.logger.info(f"ROS2 bridge connected to {app.config['ROS2_BRIDGE_HOST']}:{app.config['ROS2_BRIDGE_PORT']}")
-            # 初始化 FSD 避障服务
             from app.services.ros2_fsd_service import init_fsd_service
             init_fsd_service(bridge)
             app.logger.info("FSD obstacle avoidance service initialized")
-        else:
+        elif bridge:
             app.logger.warning("ROS2 bridge enabled but not connected (will retry in background)")
 
     # 启动视频流 - 传递 Flask 配置确保路径一致

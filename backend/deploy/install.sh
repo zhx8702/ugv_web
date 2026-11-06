@@ -42,7 +42,10 @@ apt-get install -y \
     git \
     curl \
     ffmpeg \
-    v4l-utils
+    v4l-utils \
+    espeak \
+    espeak-ng \
+    espeak-ng-data
 
 # 2. 创建目录
 echo "📁 Creating directories..."
