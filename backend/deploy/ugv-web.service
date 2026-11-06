@@ -7,6 +7,8 @@ Type=simple
 User=ws
 WorkingDirectory=/home/ws/web-control/backend
 Environment="PATH=/home/ws/web-control/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="FLASK_ENV=production"
+EnvironmentFile=-/home/ws/web-control/backend/.env
 ExecStart=/home/ws/web-control/backend/.venv/bin/python run.py
 Restart=always
 RestartSec=10

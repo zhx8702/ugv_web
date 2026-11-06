@@ -163,6 +163,10 @@
           </div>
           <span class="nav-label">CONFIG</span>
         </router-link>
+
+        <button class="nav-item" type="button" @click="doLogout">
+          <span class="nav-label">LOGOUT</span>
+        </button>
       </nav>
     </div>
 
@@ -173,9 +177,22 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSystemStore } from '@/stores/system'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { logout } from '@/services/api'
+
+const router = useRouter()
+
+async function doLogout() {
+  try {
+    await logout()
+  } catch (e) {
+    // still leave the session locally
+  }
+  router.replace('/login')
+}
 
 const systemStore = useSystemStore()
 const { voltage, temperature, rssi, systemStatus, batteryStatus } = storeToRefs(systemStore)

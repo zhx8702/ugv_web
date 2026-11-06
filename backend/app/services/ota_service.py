@@ -62,21 +62,22 @@ class OTAService:
             str: 当前版本号，如果无法读取返回 'unknown'
         """
         try:
+            result = subprocess.run(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                cwd=self.repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                try:
+                    self.version_file.write_text(version)
+                except OSError:
+                    pass
+                return version
             if self.version_file.exists():
                 return self.version_file.read_text().strip()
-            else:
-                # 尝试从git获取
-                result = subprocess.run(
-                    ['git', 'describe', '--tags', '--always'],
-                    cwd=self.repo_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                if result.returncode == 0:
-                    version = result.stdout.strip()
-                    self.version_file.write_text(version)
-                    return version
         except Exception as e:
             logger.error(f'Failed to get current version: {e}')
 

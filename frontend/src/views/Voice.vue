@@ -16,9 +16,14 @@
           <p class="title-sub">// AUDIO & TTS MANAGEMENT</p>
         </div>
       </div>
-      <div class="header-status" :class="statusClass">
-        <span class="status-dot"></span>
-        <span>{{ playing ? 'PLAYING' : 'IDLE' }}</span>
+      <div class="header-badges">
+        <div class="tts-badge" :class="ttsAvailable ? 'tts-on' : 'tts-off'">
+          TTS {{ ttsAvailable ? (ttsEngine || 'READY') : 'OFF' }}
+        </div>
+        <div class="header-status" :class="statusClass">
+          <span class="status-dot"></span>
+          <span>{{ playing ? 'PLAYING' : 'IDLE' }}</span>
+        </div>
       </div>
     </div>
 
@@ -29,19 +34,25 @@
         <div class="panel tts-panel">
           <div class="panel-header">
             <span class="panel-title">TEXT TO SPEECH</span>
-            <span class="panel-badge">TTS</span>
+            <span class="panel-badge" :class="{ 'badge-off': !ttsAvailable }">
+              {{ ttsAvailable ? (ttsEngine || 'TTS') : 'UNAVAILABLE' }}
+            </span>
           </div>
           <div class="panel-content">
+            <p v-if="!ttsAvailable" class="tts-hint">
+              TTS 未就绪：车上需要 espeak（已推荐）或 pyttsx3。
+            </p>
             <div class="tts-input-group">
               <textarea
                 v-model="ttsText"
                 class="tts-input"
-                placeholder="Enter text to speak..."
+                placeholder="输入要播报的文字，支持中英文。Ctrl+Enter 发送"
                 rows="3"
+                :disabled="!ttsAvailable"
                 @keydown.ctrl.enter="speakTTS"
               ></textarea>
               <div class="tts-actions">
-                <button class="btn btn-primary" @click="speakTTS" :disabled="!ttsText.trim() || speaking">
+                <button class="btn btn-primary" @click="speakTTS" :disabled="!ttsAvailable || !ttsText.trim() || speaking">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                     <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
@@ -227,6 +238,8 @@ const loading = ref(false)
 const audioFiles = ref([])
 const selectedCategory = ref('all')
 const currentFile = ref(null)
+const ttsAvailable = ref(false)
+const ttsEngine = ref('')
 
 // Categories
 const categories = [
@@ -238,12 +251,12 @@ const categories = [
 
 // Quick phrases for TTS
 const quickPhrases = [
-  'Hello!',
-  'Task completed',
-  'Warning detected',
-  'Battery low',
-  'Connection lost',
-  'Ready to go'
+  '你好，我是巡逻车',
+  '任务完成',
+  '发现异常',
+  '电量偏低',
+  '准备出发',
+  'Hello, ready to go'
 ]
 
 // Computed
@@ -292,20 +305,23 @@ function adjustVolume(delta) {
 }
 
 async function speakTTS() {
-  if (!ttsText.value.trim()) return
+  if (!ttsText.value.trim() || !ttsAvailable.value) return
   speaking.value = true
   playing.value = true
   try {
-    await speakText(ttsText.value)
+    const data = await speakText(ttsText.value)
+    if (data && data.success === false) {
+      toast.error(data.error || 'TTS failed')
+      speaking.value = false
+      playing.value = false
+      return
+    }
     toast.success('Speaking...')
   } catch (e) {
-    toast.error('TTS failed')
+    toast.error(e?.response?.data?.error || 'TTS failed')
+    playing.value = false
   } finally {
     speaking.value = false
-    // Delay to allow audio to finish
-    setTimeout(() => {
-      playing.value = false
-    }, 2000)
   }
 }
 
@@ -358,6 +374,8 @@ async function checkStatus() {
   try {
     const data = await getAudioStatus()
     playing.value = data.playing || false
+    ttsAvailable.value = !!data.tts_available
+    ttsEngine.value = data.tts_engine || ''
     if (!playing.value) {
       currentFile.value = null
     }
@@ -369,6 +387,7 @@ async function checkStatus() {
 onMounted(() => {
   loadAudioFiles()
   loadVolume()
+  checkStatus()
   statusInterval = setInterval(checkStatus, 2000)
 })
 
@@ -412,11 +431,38 @@ onUnmounted(() => {
   @apply text-xs font-mono text-dark-text-tertiary mt-1;
 }
 
+.header-badges {
+  @apply flex items-center gap-2;
+}
+
+.tts-badge {
+  @apply px-3 py-2 text-[10px] font-mono tracking-wider;
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.tts-on {
+  @apply text-secondary;
+  background: rgba(0, 255, 136, 0.08);
+}
+.tts-off {
+  @apply text-danger;
+  background: rgba(255, 80, 80, 0.08);
+}
+
 .header-status {
   @apply flex items-center gap-2 px-4 py-2 text-xs font-mono;
   background: rgba(0, 240, 255, 0.05);
   border: 1px solid rgba(0, 240, 255, 0.1);
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.badge-off {
+  @apply text-danger bg-danger/10;
+  border-color: rgba(255, 80, 80, 0.3);
+}
+
+.tts-hint {
+  @apply mb-3 text-xs font-mono text-danger;
 }
 
 .status-dot {

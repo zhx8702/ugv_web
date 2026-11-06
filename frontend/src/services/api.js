@@ -3,7 +3,8 @@ import { useToast } from '@/composables/useToast'
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || window.location.origin}/api`,
-  timeout: 10000
+  timeout: 10000,
+  withCredentials: true
 })
 
 // 请求拦截器
@@ -20,11 +21,25 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response.data,
   error => {
-    const toast = useToast()
-    toast.error(error.message || 'Request failed')
+    const status = error?.response?.status
+    const url = error?.config?.url || ''
+    if (status === 401 && !String(url).includes('/auth/')) {
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
+      return Promise.reject(error)
+    }
+    if (!String(url).includes('/auth/')) {
+      const toast = useToast()
+      toast.error(error.response?.data?.error || error.message || 'Request failed')
+    }
     return Promise.reject(error)
   }
 )
+
+export const getAuthStatus = () => api.get('/auth/status')
+export const login = (username, password) => api.post('/auth/login', { username, password })
+export const logout = () => api.post('/auth/logout')
 
 // 系统相关API
 export const getSystemStatus = () => api.get('/system/status')

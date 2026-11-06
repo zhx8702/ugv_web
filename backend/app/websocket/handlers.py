@@ -15,7 +15,6 @@ import logging
 controller = MotorController()
 monitor = SystemMonitor()
 cv_service = get_cv_service()
-audio_service = get_audio_service()
 
 # Connected clients tracking
 connected_clients = set()
@@ -24,7 +23,9 @@ connected_clients = set()
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
-    from flask import request
+    from flask import request, session, current_app
+    if current_app.config.get('AUTH_ENABLED') and not session.get('user'):
+        return False
     client_id = request.sid
     connected_clients.add(client_id)
 
@@ -48,7 +49,7 @@ def handle_connect():
 
     # Play connection sound
     try:
-        audio_service.play_random('connected')
+        get_audio_service().play_random('connected')
         logging.info('Connection sound played')
     except Exception as e:
         logging.warning(f'Failed to play connection sound: {e}')
@@ -306,10 +307,10 @@ def handle_audio_play(data):
         category = data.get('category')
 
         if filepath:
-            success = audio_service.play_file(filepath)
+            success = get_audio_service().play_file(filepath)
             emit('audio_play_result', {'success': success, 'file': filepath})
         elif category:
-            success = audio_service.play_random(category)
+            success = get_audio_service().play_random(category)
             emit('audio_play_result', {'success': success, 'category': category})
         else:
             emit('error', {'message': 'Missing file or category parameter'})
@@ -327,7 +328,7 @@ def handle_audio_speak(data):
     try:
         text = data.get('text')
         if text:
-            success = audio_service.speak(text)
+            success = get_audio_service().speak(text)
             emit('audio_speak_result', {'success': success, 'text': text})
         else:
             emit('error', {'message': 'Missing text parameter'})
@@ -345,10 +346,10 @@ def handle_audio_volume(data):
     try:
         volume = data.get('volume')
         if volume is not None:
-            success = audio_service.set_volume(float(volume))
+            success = get_audio_service().set_volume(float(volume))
             emit('audio_volume_changed', {
                 'success': success,
-                'volume': audio_service.volume
+                'volume': get_audio_service().volume
             })
         else:
             emit('error', {'message': 'Missing volume parameter'})
@@ -361,7 +362,7 @@ def handle_audio_volume(data):
 def handle_audio_stop():
     """停止音频播放"""
     try:
-        success = audio_service.stop()
+        success = get_audio_service().stop()
         emit('audio_stop_result', {'success': success})
     except Exception as e:
         logging.error(f'Error stopping audio: {e}')
@@ -372,7 +373,7 @@ def handle_audio_stop():
 def handle_audio_status():
     """获取音频服务状态"""
     try:
-        status = audio_service.get_status()
+        status = get_audio_service().get_status()
         emit('audio_status', status)
     except Exception as e:
         logging.error(f'Error getting audio status: {e}')

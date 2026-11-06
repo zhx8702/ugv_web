@@ -47,6 +47,7 @@ dependencies = [
 
     # TTS (Text-to-Speech)
     "pyttsx3>=2.90",
+    "edge-tts>=6.1.0",
 
     # System Monitoring
     "psutil>=5.9.6",

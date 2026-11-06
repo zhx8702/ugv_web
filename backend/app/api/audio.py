@@ -7,9 +7,6 @@ from flask import jsonify, request, current_app
 from app.api import audio_bp
 from app.services.audio_service import get_audio_service
 
-# 获取音频服务单例
-audio_service = get_audio_service()
-
 
 @audio_bp.route('/files', methods=['GET'])
 def get_files():
@@ -20,7 +17,7 @@ def get_files():
     """
     try:
         category = request.args.get('category')
-        files = audio_service.get_files(category)
+        files = get_audio_service().get_files(category)
         return jsonify({
             'success': True,
             'files': files,
@@ -47,7 +44,7 @@ def play_file():
         if not filepath:
             return jsonify({'error': 'Missing file parameter'}), 400
 
-        success = audio_service.play_file(filepath)
+        success = get_audio_service().play_file(filepath)
         return jsonify({
             'success': success,
             'file': filepath
@@ -75,7 +72,7 @@ def play_random():
         if not category:
             return jsonify({'error': 'Missing category parameter'}), 400
 
-        success = audio_service.play_random(category, force)
+        success = get_audio_service().play_random(category, force)
         return jsonify({
             'success': success,
             'category': category
@@ -101,11 +98,26 @@ def speak():
         if not text:
             return jsonify({'error': 'Missing text parameter'}), 400
 
-        success = audio_service.speak(text)
+        audio_service = get_audio_service()
+        interrupt = bool(data.get('interrupt', False))
+        success = audio_service.speak(text, interrupt=interrupt)
+        status = audio_service.get_status()
+        if not success:
+            reason = 'TTS not available' if not status.get('tts_available') else 'Audio queue full'
+            return jsonify({
+                'success': False,
+                'text': text,
+                'error': reason,
+                'tts_available': status.get('tts_available'),
+                'tts_engine': status.get('tts_engine')
+            }), 503
         return jsonify({
-            'success': success,
-            'text': text
-        }), 200 if success else 500
+            'success': True,
+            'text': text,
+            'queued': True,
+            'tts_engine': status.get('tts_engine'),
+            'queue_size': status.get('queue_size', 0)
+        }), 200
 
     except Exception as e:
         current_app.logger.error(f"Error in TTS: {e}")
@@ -116,7 +128,7 @@ def speak():
 def stop():
     """停止当前播放"""
     try:
-        success = audio_service.stop()
+        success = get_audio_service().stop()
         return jsonify({'success': success}), 200
 
     except Exception as e:
@@ -130,7 +142,7 @@ def get_volume():
     try:
         return jsonify({
             'success': True,
-            'volume': audio_service.volume
+            'volume': get_audio_service().volume
         }), 200
 
     except Exception as e:
@@ -153,6 +165,7 @@ def set_volume():
         if volume is None:
             return jsonify({'error': 'Missing volume parameter'}), 400
 
+        audio_service = get_audio_service()
         success = audio_service.set_volume(float(volume))
         return jsonify({
             'success': success,
@@ -168,7 +181,7 @@ def set_volume():
 def get_status():
     """获取音频服务状态"""
     try:
-        status = audio_service.get_status()
+        status = get_audio_service().get_status()
         return jsonify({
             'success': True,
             **status

@@ -2,6 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { title: 'Login', public: true }
+  },
+  {
     path: '/',
     name: 'Dashboard',
     component: () => import('@/views/dashboard/DashboardRouter.vue'),
@@ -62,8 +68,23 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   document.title = `${to.meta.title} - UGV Rover` || 'UGV Rover Control'
+  if (to.meta.public) {
+    next()
+    return
+  }
+  try {
+    const { getAuthStatus } = await import('@/services/api')
+    const status = await getAuthStatus()
+    if (status.enabled && !status.authenticated) {
+      next({ path: '/login', query: { redirect: to.fullPath } })
+      return
+    }
+  } catch (e) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
   next()
 })
 

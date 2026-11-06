@@ -98,6 +98,7 @@ def register_blueprints(app):
     from app.api.espnow import espnow_bp
     from app.api.ros2 import ros2_bp
     from app.api.settings import settings_bp
+    from app.auth import auth_bp, init_auth
 
     app.register_blueprint(system_bp, url_prefix='/api/system')
     app.register_blueprint(control_bp, url_prefix='/api/control')
@@ -110,6 +111,8 @@ def register_blueprints(app):
     app.register_blueprint(lidar_bp)  # Already has /api/lidar prefix
     app.register_blueprint(espnow_bp)  # Already has /api/espnow prefix
     app.register_blueprint(ros2_bp)  # /api/ros2 prefix
+    app.register_blueprint(auth_bp)
+    init_auth(app)
 
 
 def register_websocket_handlers():
@@ -119,6 +122,13 @@ def register_websocket_handlers():
 
 def start_background_tasks(app):
     """Start background tasks for periodic updates"""
+    from app.services.audio_service import init_audio_service
+    init_audio_service(app.config)
+    app.logger.info("Audio service initialized")
+
+    if app.config.get('TESTING'):
+        return
+
     from app.websocket.handlers import start_background_tasks as start_bg_tasks
     start_bg_tasks(app)
 

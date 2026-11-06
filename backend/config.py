@@ -3,6 +3,7 @@ Backend Configuration
 """
 import os
 import sys
+from datetime import timedelta
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -15,6 +16,15 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     DEBUG = False
     TESTING = False
+    AUTH_USER = os.getenv('AUTH_USER', 'ws')
+    AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', '')
+    AUTH_ENABLED = os.getenv(
+        'AUTH_ENABLED',
+        'true' if os.getenv('AUTH_PASSWORD') else 'false'
+    ).lower() == 'true'
+    PERMANENT_SESSION_LIFETIME = timedelta(seconds=int(os.getenv('SESSION_LIFETIME', 60 * 60 * 24 * 7)))
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
     # Server
     HOST = os.getenv('HOST', '0.0.0.0')
@@ -69,6 +79,8 @@ class Config:
     AUDIO_PATH = os.getenv('AUDIO_PATH', os.path.join(BASE_DIR, 'sounds'))
     AUDIO_DEFAULT_VOLUME = float(os.getenv('AUDIO_DEFAULT_VOLUME', 0.5))
     AUDIO_TTS_RATE = int(os.getenv('AUDIO_TTS_RATE', 150))
+    AUDIO_TTS_ENGINE = os.getenv('AUDIO_TTS_ENGINE', 'auto')  # auto | edge | espeak | pyttsx3
+    AUDIO_TTS_VOICE = os.getenv('AUDIO_TTS_VOICE', 'zh-CN-XiaoxiaoNeural')
     AUDIO_MIN_TIME_BETWEEN = float(os.getenv('AUDIO_MIN_TIME_BETWEEN', 0.5))
 
     # ROS2 Bridge
