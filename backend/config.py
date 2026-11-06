@@ -95,9 +95,8 @@ class Config:
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
     LOG_FILE = os.getenv('LOG_FILE', os.path.join(BASE_DIR, 'logs', 'app.log'))
 
-    # SocketIO
-    # Use threading on Windows or when ROS2 is enabled (eventlet conflicts with Twisted/roslibpy)
-    SOCKETIO_ASYNC_MODE = 'threading' if sys.platform == 'win32' or os.getenv('ROS2_ENABLED', 'false').lower() == 'true' else 'eventlet'
+    # SocketIO — threading avoids eventlet conflicts with pygame/OpenCV/roslibpy
+    SOCKETIO_ASYNC_MODE = 'threading'
     SOCKETIO_CORS_ALLOWED_ORIGINS = '*'  # Allow all origins for WebSocket
     SOCKETIO_PING_TIMEOUT = 60
     SOCKETIO_PING_INTERVAL = 25
